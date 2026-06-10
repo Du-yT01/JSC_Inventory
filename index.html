@@ -1382,17 +1382,17 @@ function computeData(raw) {
   // Xuất TP tổng
   var xuatTpTot = tpList.reduce(function(s,tp){return s+(xuatTotTp[tp]||0);},0);
 
-  // Trim to last month with any data
+  // Trim to last month with any data (use tpList not global TPS)
   var lastM = 0;
   for (var mi = 11; mi >= 0; mi--) {
     var hasAny = nhapByMonth[mi] > 0 || gcByMonth[mi] > 0;
-    if (!hasAny) TPS.forEach(function(tp){ hasAny = hasAny || (nhanByMonthTp[tp]||[])[mi]>0 || (xuatByMonthTp[tp]||[])[mi]>0; });
+    if (!hasAny) tpList.forEach(function(tp){ hasAny = hasAny || (nhanByMonthTp[tp]||[])[mi]>0 || (xuatByMonthTp[tp]||[])[mi]>0; });
     if (hasAny) { lastM = mi + 1; break; }
   }
   if (lastM < 6) lastM = 6; // minimum 6 months
   nhapByMonth  = nhapByMonth.slice(0, lastM);
   gcByMonth    = gcByMonth.slice(0, lastM);
-  TPS.forEach(function(tp){
+  tpList.forEach(function(tp){
     if (nhanByMonthTp[tp]) nhanByMonthTp[tp] = nhanByMonthTp[tp].slice(0, lastM);
     if (xuatByMonthTp[tp]) xuatByMonthTp[tp] = xuatByMonthTp[tp].slice(0, lastM);
   });
@@ -1488,7 +1488,13 @@ function fetchAndRefresh() {
     console.log('[GS] nhap sample kl:', raw.nhap.slice(0,3).map(function(r){return r['Khối lượng mủ đông chén cân vào']||r['Khối lượng mủ đông chén']||'?';}));
     console.log('[GS] nhap sample date:', raw.nhap.slice(0,3).map(function(r){return r['Ngày xuất hàng']||'?';}));
 
-    var D = computeData(raw);
+    var D;
+    try {
+      D = computeData(raw);
+    } catch(e) {
+      console.error('[GS] computeData ERROR:', e.message, e.stack);
+      throw e;
+    }
 
     // Log computed results for debugging
     console.log('[GS] Computed NHAP_NVL:', JSON.stringify(D.NHAP_NVL));
