@@ -1106,32 +1106,14 @@ function gvizUrl(sheetName) {
 function parseCsv(text) {
   var lines = text.trim().split('\n');
   if (lines.length < 2) return [];
-
-  // Auto-detect real header row: skip metadata rows (numeric first cell)
-  // Real header = first cell is non-numeric string with 2+ chars AND row has 5+ non-empty cells
-  var headerIdx = 0;
-  for (var i = 0; i < Math.min(6, lines.length); i++) {
-    var cells = parseCsvRow(lines[i]);
-    var first = cells[0] ? cells[0].trim().replace(/^"|"$/g,'') : '';
-    var nonEmpty = cells.filter(function(c){ return c.trim().replace(/^"|"$/g,'') !== ''; }).length;
-    if (first.length > 2 && isNaN(Number(first)) && nonEmpty >= 5) {
-      headerIdx = i;
-      break;
-    }
-  }
-
-  var headers = parseCsvRow(lines[headerIdx]).map(function(h){
-    return h.trim().replace(/^"|"$/g,'');
-  });
+  var headers = parseCsvRow(lines[0]).map(function(h){ return h.trim().replace(/^"|"$/g,''); });
   var rows = [];
-  for (var i = headerIdx + 1; i < lines.length; i++) {
+  for (var i = 1; i < lines.length; i++) {
     var vals = parseCsvRow(lines[i]);
-    var hasData = vals.some(function(v){ return v.trim().replace(/^"|"$/g,'') !== ''; });
+    var hasData = vals.some(function(v){ return v.trim().replace(/^"|"$/g,'')!==''; });
     if (!hasData) continue;
     var obj = {};
-    headers.forEach(function(h, k) {
-      obj[h] = (vals[k] || '').trim().replace(/^"|"$/g,'');
-    });
+    headers.forEach(function(h,k){ obj[h] = (vals[k]||'').trim().replace(/^"|"$/g,''); });
     rows.push(obj);
   }
   return rows;
@@ -1207,12 +1189,12 @@ function computeData(raw) {
   var drcList = [];
 
   nhapRows.forEach(function(r) {
-    // Try multiple possible column names
-    var dateStr = r['Ngày xuất hàng'] || r['Ngày nhập'] || r['Cập nhật lần cuối'] || '';
-    var kho = r['Tên kho'] || r['Địa điểm'] || r['Kho nhận'] || '';
-    var kl  = toNum(r['Khối lượng mủ đông chén cân vào'] || r['Khối lượng'] || r['KL cân vào'] || 0);
-    var drc = toNum(r['DRC thực tế'] || r['DRC'] || 0);
-    var hd  = r['Số hợp đồng'] || r['Tên'] || '';
+    // Column names from actual Google Sheet (confirmed via console log)
+    var dateStr = r['Ngày xuất hàng'] || r['Cập nhật lần cuối'] || '';
+    var kho = r['Địa điểm'] || r['Tên kho'] || '';
+    var kl  = toNum(r['Khối lượng mủ đông chén cân vào'] || r['Khối lượng mủ đông chén'] || 0);
+    var drc = toNum(r['DRC thực tế'] || r['DRC đo lần 2'] || 0);
+    var hd  = r['Số hợp đồng'] || r['Tên phiếu'] || '';
     var bien = r['Biển số xe'] || '';
 
     if (!kl || kl <= 0) return;
@@ -1483,6 +1465,12 @@ function fetchAndRefresh() {
     console.log('[GS] nhap row[1] values:', raw.nhap[1] ? Object.values(raw.nhap[1]).slice(0,8).join(' | ') : '');
     console.log('[GS] nhap row[2] values:', raw.nhap[2] ? Object.values(raw.nhap[2]).slice(0,8).join(' | ') : '');
     console.log('[GS] nhap ALL cols:', raw.nhap[0] ? Object.keys(raw.nhap[0]).join(' | ') : '');
+    console.log('[GS] gc ALL cols:',   raw.gc[0]   ? Object.keys(raw.gc[0]).join(' | ')   : '');
+    console.log('[GS] tp ALL cols:',   raw.tp[0]   ? Object.keys(raw.tp[0]).join(' | ')   : '');
+    console.log('[GS] xuat ALL cols:', raw.xuat[0] ? Object.keys(raw.xuat[0]).join(' | ') : '');
+    // Sample data rows to verify values
+    console.log('[GS] nhap sample kl:', raw.nhap.slice(0,3).map(function(r){return r['Khối lượng mủ đông chén cân vào']||r['Khối lượng mủ đông chén']||'?';}));
+    console.log('[GS] nhap sample date:', raw.nhap.slice(0,3).map(function(r){return r['Ngày xuất hàng']||'?';}));
 
     var D = computeData(raw);
 
