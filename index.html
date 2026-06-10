@@ -1106,7 +1106,7 @@ var SHEETS = {
 
 function gvizUrl(sheetName) {
   return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID
-    + '/gviz/tq?tqx=out:csv&sheet=' + sheetName;
+    + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName);
 }
 
 // Parse CSV string → array of objects (first row = headers)
@@ -1453,20 +1453,24 @@ function fetchAndRefresh() {
   if (overlay) overlay.style.display = 'flex';
 
   var sheetNames = {
-    nhap: '2.1 QT Nh\u1EADp kho CTCP',
-    gc:   '3. QT Giao nguy\u00EAn li\u1EC7u cho nh\u00E0 ',
-    tp:   '4. QT Nh\u1EADn th\u00E0nh ph\u1EA9m t\u1EEB nh\u00E0 m\u00E1',
-    xuat: '7. QT X\u1EED l\u00FD \u0111\u01A1n h\u00E0ng v\u00E0 giao h\u00E0'
+    nhap: '2.1 QT Nhập kho CTCP',
+    gc:   '3. QT Giao nguyên liệu cho nhà ',
+    tp:   '4. QT Nhận thành phẩm từ nhà má',
+    xuat: '7. QT Xử lý đơn hàng và giao hà'
   };
 
   Promise.all([
-    fetchSheet(encodeURIComponent(sheetNames.nhap)),
-    fetchSheet(encodeURIComponent(sheetNames.gc)),
-    fetchSheet(encodeURIComponent(sheetNames.tp)),
-    fetchSheet(encodeURIComponent(sheetNames.xuat))
+    fetchSheet(sheetNames.nhap),
+    fetchSheet(sheetNames.gc),
+    fetchSheet(sheetNames.tp),
+    fetchSheet(sheetNames.xuat)
   ]).then(function(results) {
     var raw = {nhap: results[0], gc: results[1], tp: results[2], xuat: results[3]};
-    console.log('[GS] Fetched rows — nhap:', raw.nhap.length, 'gc:', raw.gc.length, 'tp:', raw.tp.length, 'xuat:', raw.xuat.length);
+    console.log('[GS] ✓ Fetched rows — nhap:', raw.nhap.length, '| gc:', raw.gc.length, '| tp:', raw.tp.length, '| xuat:', raw.xuat.length);
+    console.log('[GS] nhap cols:', raw.nhap[0] ? Object.keys(raw.nhap[0]).slice(0,8).join(' | ') : 'EMPTY');
+    console.log('[GS] gc cols:',   raw.gc[0]   ? Object.keys(raw.gc[0]).slice(0,8).join(' | ')   : 'EMPTY');
+    console.log('[GS] tp cols:',   raw.tp[0]   ? Object.keys(raw.tp[0]).slice(0,8).join(' | ')   : 'EMPTY');
+    console.log('[GS] xuat cols:', raw.xuat[0] ? Object.keys(raw.xuat[0]).slice(0,8).join(' | ') : 'EMPTY');
 
     var D = computeData(raw);
 
