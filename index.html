@@ -1436,9 +1436,9 @@ function computeData(raw) {
     GC_LOG: gcLog.slice(-15),
     KH_LOG: khLog.slice(-15),
     HD_PCT: hdPct,
-    // KH còn giữ nguyên từ static (cần dữ liệu kế hoạch riêng)
-    NHAP_KH: [800,2000,2500,2200,3000,3500,3800,4000,3500,3000,2500,2000],
-    GC_KH:   [5000,12000,16000,11000,8500,13000,14000,15000,12000,10000,9000,8000],
+    // KH giữ nguyên từ static, trim theo lastM
+    NHAP_KH: [800,2000,2500,2200,3000,3500,3800,4000,3500,3000,2500,2000].slice(0,lastM),
+    GC_KH:   [5000,12000,16000,11000,8500,13000,14000,15000,12000,10000,9000,8000].slice(0,lastM),
     TON_KH3: {'SVR 10':2200,'SVR 20':1000,'SVR 3L':300,'SVR CV50':250},
     HM_DATA: hmData
   };
@@ -1521,14 +1521,20 @@ function fetchAndRefresh() {
     HD_PCT   = D.HD_PCT.length > 0 ? D.HD_PCT : HD_PCT;
     HM_DATA  = D.hmData.length > 0 ? D.hmData : HM_DATA;
 
-    // Trim TL labels to match actual data length
-    if (D.lastM && D.lastM !== TL.length) {
-      TL = TL.slice(0, D.lastM);
-    }
+    // Reset TL to full 12 months then trim to actual data length
+    TL = ['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12'];
+    if (D.lastM) TL = TL.slice(0, D.lastM);
+    console.log('[GS] TL after trim:', TL);
     // Update timestamp
     var ts = document.getElementById('last-updated');
     var now = new Date();
     if (ts) ts.textContent = 'Cập nhật: ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ' ' + now.getDate() + '/' + (now.getMonth()+1) + '/' + now.getFullYear();
+
+    // Destroy ALL existing charts so they rebuild cleanly with new data + new TL length
+    Object.keys(CH).forEach(function(id){
+      try { CH[id].destroy(); } catch(e){}
+      delete CH[id];
+    });
 
     // Rebuild current page
     var activePage = ['p1','p2','p3','p4'].find(function(p){ return document.getElementById(p).classList.contains('on'); });
