@@ -1097,9 +1097,9 @@ var SHEETS = {
   xuat:  '7. QT X%E1%BB%AD%20l%C3%BD%20%C4%91%C6%A1n%20h%C3%A0ng%20v%C3%A0%20giao%20h%C3%A0'
 };
 
-function gvizUrl(sheetName) {
+function gvizUrl(gid) {
   return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID
-    + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName);
+    + '/export?format=csv&gid=' + gid;
 }
 
 // Parse CSV string → array of objects (first row = headers)
@@ -1161,7 +1161,9 @@ function fmtDate(dateStr) {
 
 // ── FETCH ALL SHEETS ─────────────────────────────────────
 function fetchSheet(sheetName) {
-  return fetch(gvizUrl(sheetName))
+  var url = gvizUrl(sheetName);
+  console.log('[GS] Fetching gid:', sheetName, '→', url);
+  return fetch(url)
     .then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + sheetName);
       return r.text();
@@ -1216,11 +1218,11 @@ function computeData(raw) {
 
   gcRows.forEach(function(r) {
     var dateStr = r['Cập nhật lần cuối'] || r['Ngày giao'] || '';
-    var kho = r['Tên kho'] || r['Kho'] || '';
-    var kl  = toNum(r['Khối lượng mủ đông chén của đợt'] || r['Khối lượng'] || 0);
-    var drc = toNum(r['DRC đo'] || r['DRC đo lần 2'] || 0);
+    var kho = r['Tên kho'] || r['Kho xuất'] || '';
+    var kl  = toNum(r['Khối lượng mủ đông chén của đợt'] || r['Khối lượng mủ đông chén'] || 0);
+    var drc = toNum(r['DRC đo'] || r['DRC đo lần 2'] || r['Hàm lượng DRC'] || 0);
     var hh  = toNum(r['Hao hụt ghi nhận từ CTCP'] || r['Hao hụt'] || 0);
-    var hd  = r['Số hợp đồng gia công'] || r['Tên'] || '';
+    var hd  = r['Số hợp đồng gia công'] || r['Số hợp đồng'] || r['Tên phiếu'] || '';
 
     if (!kl || kl <= 0) return;
     var m = getMonth(dateStr);
@@ -1243,10 +1245,10 @@ function computeData(raw) {
 
   tpRows.forEach(function(r) {
     var dateStr = r['Ngày nhập lô hàng'] || r['Cập nhật lần cuối'] || '';
-    var kho = r['Tên kho nhận'] || r['Kho nhận'] || '';
-    var tp  = (r['TP - Tên'] || r['Loại TP'] || '').trim();
-    var kl  = toNum(r['TP - SL'] || r['Khối lượng'] || 0);
-    var hd  = r['Số hợp đồng gia công'] || r['Tên'] || '';
+    var kho = r['Tên kho nhận'] || r['Kho nhận'] || r['Địa điểm giao hàng'] || '';
+    var tp  = (r['TP - Tên'] || r['Loại TP'] || r['Loại hàng'] || '').trim();
+    var kl  = toNum(r['TP - SL'] || r['Khối lượng mủ đông chén'] || 0);
+    var hd  = r['Số hợp đồng gia công'] || r['Số hợp đồng'] || r['Tên phiếu'] || '';
     var ca  = r['Ca trực'] || '';
 
     if (!tp || !kl || kl <= 0) return;
@@ -1274,12 +1276,12 @@ function computeData(raw) {
 
   xuatRows.forEach(function(r) {
     var dateStr = r['Cập nhật lần cuối'] || r['Ngày giao'] || '';
-    var kho = r['Kho hàng'] || r['Kho'] || '';
-    var tp  = (r['HH - Tên'] || r['Loại TP'] || '').trim();
-    var kl  = toNum(r['HH - Số lượng'] || r['Số lượng'] || 0);
-    var kh  = r['Tên khách hàng'] || r['Khách hàng'] || '';
+    var kho = r['Kho hàng'] || r['Kho'] || r['Địa điểm giao hàng'] || '';
+    var tp  = (r['HH - Tên'] || r['Loại hàng'] || '').trim();
+    var kl  = toNum(r['HH - Số lượng'] || r['Khối lượng mủ đông chén'] || 0);
+    var kh  = r['Tên khách hàng'] || r['Tên công ty bên A'] || '';
     var hd  = r['Số hợp đồng'] || '';
-    var pl  = r['Số phụ lục'] || r['Phụ lục'] || '';
+    var pl  = r['Số phụ lục'] || r['Mã phụ lục'] || '';
     var hh  = toNum(r['Hao hụt'] || 0);
 
     if (!tp || !kl || kl <= 0) return;
@@ -1441,18 +1443,19 @@ function fetchAndRefresh() {
   var overlay = document.getElementById('loading-overlay');
   if (overlay) overlay.style.display = 'flex';
 
-  var sheetNames = {
-    nhap: '2.1 QT Nhập kho CTCP',
-    gc:   '3. QT Giao nguyên liệu cho nhà ',
-    tp:   '4. QT Nhận thành phẩm từ nhà má',
-    xuat: '7. QT Xử lý đơn hàng và giao hà'
+  // gid lấy trực tiếp từ URL Google Sheets của từng tab
+  var sheetGids = {
+    nhap: '1935186217',  // 2.1 QT Nhập kho CTCP
+    gc:   '103243898',   // 3. QT Giao nguyên liệu cho nhà máy
+    tp:   '1648919002',  // 4. QT Nhận thành phẩm từ nhà máy
+    xuat: '528590544'    // 7. QT Xử lý đơn hàng và giao hàng
   };
 
   Promise.all([
-    fetchSheet(sheetNames.nhap),
-    fetchSheet(sheetNames.gc),
-    fetchSheet(sheetNames.tp),
-    fetchSheet(sheetNames.xuat)
+    fetchSheet(sheetGids.nhap),
+    fetchSheet(sheetGids.gc),
+    fetchSheet(sheetGids.tp),
+    fetchSheet(sheetGids.xuat)
   ]).then(function(results) {
     var raw = {nhap: results[0], gc: results[1], tp: results[2], xuat: results[3]};
     console.log('[GS] ✓ Fetched rows — nhap:', raw.nhap.length, '| gc:', raw.gc.length, '| tp:', raw.tp.length, '| xuat:', raw.xuat.length);
