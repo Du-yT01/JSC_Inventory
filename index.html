@@ -1082,13 +1082,6 @@ function buildP4(){
   }).join('');
 }
 
-document.addEventListener('DOMContentLoaded',function(){
-  buildPage('p1');
-  // Auto-fetch on load
-  fetchAndRefresh();
-});
-})();
-
 // ═══════════════════════════════════════════════════════════
 // GOOGLE SHEETS CONNECTOR
 // Fetch 4 sheets → parse → compute aggregates → update charts
@@ -1183,11 +1176,7 @@ function computeData(raw) {
   var tpRows   = raw.tp;
   var xuatRows = raw.xuat;
 
-  // Debug: log headers
-  console.log('[GS] nhap cols:', nhapRows[0] ? Object.keys(nhapRows[0]).join(' | ') : 'empty');
-  console.log('[GS] gc cols:',   gcRows[0]   ? Object.keys(gcRows[0]).join(' | ')   : 'empty');
-  console.log('[GS] tp cols:',   tpRows[0]   ? Object.keys(tpRows[0]).join(' | ')   : 'empty');
-  console.log('[GS] xuat cols:', xuatRows[0] ? Object.keys(xuatRows[0]).join(' | ') : 'empty');
+
 
   var MONTHS = [1,2,3,4,5,6];
 
@@ -1522,6 +1511,12 @@ function fetchAndRefresh() {
   });
 }
 
+
+document.addEventListener('DOMContentLoaded',function(){
+  buildPage('p1');
+  fetchAndRefresh();
+});
+})();
 </script>
 </body>
 </html>
