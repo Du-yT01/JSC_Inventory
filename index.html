@@ -558,7 +558,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 <script>
 (function(){
 'use strict';
-var TL=['T01','T02','T03','T04','T05','T06'];
+var TL=['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12'];
 var WL=['T5-W1','T5-W2','T5-W3','T5-W4','T6-W1','T6-W2','T6-W3','T6-W4'];
 
 // Màu nhất quán cho từng loại TP — dùng xuyên suốt toàn bộ báo cáo
@@ -1180,12 +1180,8 @@ function computeData(raw) {
 
 
 
-  var MONTHS = [1,2,3,4,5,6];
-
-  // ── NHẬP KHO (Sheet 2.1) ─────────────────────────────
-  // Cột quan trọng: "Ngày xuất hàng", "Tên kho" / "Địa điểm", 
-  //                "Khối lượng mủ đông chén cân vào", "DRC thực tế"
-  var nhapByMonth = [0,0,0,0,0,0];
+  // Dynamic: track all months found in data (up to 12)
+  var nhapByMonth = [0,0,0,0,0,0,0,0,0,0,0,0]; // index 0=T01 ... 11=T12
   var nhapLog = [];
   var nhapKhoMap = {}; // kho → total
   var drcList = [];
@@ -1201,7 +1197,7 @@ function computeData(raw) {
 
     if (!kl || kl <= 0) return;
     var m = getMonth(dateStr);
-    if (m >= 1 && m <= 6) nhapByMonth[m-1] += kl;
+    if (m >= 1 && m <= 12) nhapByMonth[m-1] += kl;
     if (kho) nhapKhoMap[kho] = (nhapKhoMap[kho] || 0) + kl;
     if (drc > 0) drcList.push(drc);
     nhapLog.push({n: fmtDate(dateStr), hd: hd, k: kho, kg: kl, kc: kl, drc: drc, bs: bien});
@@ -1210,23 +1206,23 @@ function computeData(raw) {
   // ── GIAO GIA CÔNG (Sheet 3) ──────────────────────────
   // Cột: "Cập nhật lần cuối", "Tên kho", "Khối lượng mủ đông chén của đợt",
   //      "DRC đo", "Hao hụt ghi nhận từ CTCP"
-  var gcByMonth = [0,0,0,0,0,0];
+  var gcByMonth = [0,0,0,0,0,0,0,0,0,0,0,0];
   var gcLog = [];
   var gcKhoMap = {};
   var gcHaoHutKho = {};
   var gcDrcList = [];
 
   gcRows.forEach(function(r) {
-    var dateStr = r['Cập nhật lần cuối'] || r['Ngày giao'] || '';
-    var kho = r['Tên kho'] || r['Kho xuất'] || '';
-    var kl  = toNum(r['Khối lượng mủ đông chén của đợt'] || r['Khối lượng mủ đông chén'] || 0);
-    var drc = toNum(r['DRC đo'] || r['DRC đo lần 2'] || r['Hàm lượng DRC'] || 0);
-    var hh  = toNum(r['Hao hụt ghi nhận từ CTCP'] || r['Hao hụt'] || 0);
-    var hd  = r['Số hợp đồng gia công'] || r['Số hợp đồng'] || r['Tên phiếu'] || '';
+    var dateStr = r['Cập nhật lần cuối'] || '';
+    var kho = r['Tên kho'] || '';
+    var kl  = toNum(r['Khối lượng mủ đông chén của đợt'] || 0);
+    var drc = toNum(r['DRC đo'] || 0);
+    var hh  = toNum(r['Hao hụt ghi nhận từ CTCP'] || 0);
+    var hd  = r['Số hợp đồng'] || r['Tên phiếu'] || '';
 
     if (!kl || kl <= 0) return;
     var m = getMonth(dateStr);
-    if (m >= 1 && m <= 6) gcByMonth[m-1] += kl;
+    if (m >= 1 && m <= 12) gcByMonth[m-1] += kl;
     if (kho) {
       gcKhoMap[kho]    = (gcKhoMap[kho] || 0) + kl;
       gcHaoHutKho[kho] = (gcHaoHutKho[kho] || 0) + hh;
@@ -1245,18 +1241,18 @@ function computeData(raw) {
 
   tpRows.forEach(function(r) {
     var dateStr = r['Ngày nhập lô hàng'] || r['Cập nhật lần cuối'] || '';
-    var kho = r['Tên kho nhận'] || r['Kho nhận'] || r['Địa điểm giao hàng'] || '';
-    var tp  = (r['TP - Tên'] || r['Loại TP'] || r['Loại hàng'] || '').trim();
-    var kl  = toNum(r['TP - SL'] || r['Khối lượng mủ đông chén'] || 0);
-    var hd  = r['Số hợp đồng gia công'] || r['Số hợp đồng'] || r['Tên phiếu'] || '';
-    var ca  = r['Ca trực'] || '';
+    var kho = r['Tên kho nhận'] || '';
+    var tp  = (r['TP - Tên'] || '').trim();
+    var kl  = toNum(r['TP - SL'] || 0);
+    var hd  = r['Số hợp đồng'] || r['Tên phiếu'] || '';
+    var ca  = r['Ca sản xuất'] || '';
 
     if (!tp || !kl || kl <= 0) return;
     if (tpList.indexOf(tp) < 0) tpList.push(tp);
-    if (!nhanByMonthTp[tp]) nhanByMonthTp[tp] = [0,0,0,0,0,0];
+    if (!nhanByMonthTp[tp]) nhanByMonthTp[tp] = [0,0,0,0,0,0,0,0,0,0,0,0];
     if (!nhanTotTp[tp]) nhanTotTp[tp] = 0;
     var m = getMonth(dateStr);
-    if (m >= 1 && m <= 6) nhanByMonthTp[tp][m-1] += kl;
+    if (m >= 1 && m <= 12) nhanByMonthTp[tp][m-1] += kl;
     nhanTotTp[tp] += kl;
     if (kho) {
       if (!nhanKhoTp[kho]) nhanKhoTp[kho] = {};
@@ -1275,21 +1271,21 @@ function computeData(raw) {
   var hdLog = {}; // hd → {so_hd, kh, sp, kl}
 
   xuatRows.forEach(function(r) {
-    var dateStr = r['Cập nhật lần cuối'] || r['Ngày giao'] || '';
-    var kho = r['Kho hàng'] || r['Kho'] || r['Địa điểm giao hàng'] || '';
-    var tp  = (r['HH - Tên'] || r['Loại hàng'] || '').trim();
-    var kl  = toNum(r['HH - Số lượng'] || r['Khối lượng mủ đông chén'] || 0);
-    var kh  = r['Tên khách hàng'] || r['Tên công ty bên A'] || '';
+    var dateStr = r['Cập nhật lần cuối'] || '';
+    var kho = r['Kho hàng'] || '';
+    var tp  = (r['HH - Tên'] || '').trim();
+    var kl  = toNum(r['HH - Số lượng'] || 0);
+    var kh  = r['Tên công ty bên A'] || '';
     var hd  = r['Số hợp đồng'] || '';
-    var pl  = r['Số phụ lục'] || r['Mã phụ lục'] || '';
+    var pl  = r['Số phụ lục'] || '';
     var hh  = toNum(r['Hao hụt'] || 0);
 
     if (!tp || !kl || kl <= 0) return;
     if (tpList.indexOf(tp) < 0) tpList.push(tp);
-    if (!xuatByMonthTp[tp]) xuatByMonthTp[tp] = [0,0,0,0,0,0];
+    if (!xuatByMonthTp[tp]) xuatByMonthTp[tp] = [0,0,0,0,0,0,0,0,0,0,0,0];
     if (!xuatTotTp[tp]) xuatTotTp[tp] = 0;
     var m = getMonth(dateStr);
-    if (m >= 1 && m <= 6) xuatByMonthTp[tp][m-1] += kl;
+    if (m >= 1 && m <= 12) xuatByMonthTp[tp][m-1] += kl;
     xuatTotTp[tp] += kl;
     if (kh) {
       if (!xuatKhTp[kh]) xuatKhTp[kh] = {};
@@ -1315,10 +1311,10 @@ function computeData(raw) {
     ? Math.round(gcDrcList.reduce(function(a,b){return a+b.drc;},0) / gcDrcList.length * 10) / 10 : 0;
 
   // DRC đo khi xuất GC theo tháng (avg per month)
-  var gcDrcByMonth = [0,0,0,0,0,0];
-  var gcDrcCount   = [0,0,0,0,0,0];
+  var gcDrcByMonth = [0,0,0,0,0,0,0,0,0,0,0,0];
+  var gcDrcCount   = [0,0,0,0,0,0,0,0,0,0,0,0];
   gcDrcList.forEach(function(d){
-    if (d.m >= 1 && d.m <= 6) {
+    if (d.m >= 1 && d.m <= 12) {
       gcDrcByMonth[d.m-1] += d.drc;
       gcDrcCount[d.m-1]++;
     }
@@ -1386,7 +1382,24 @@ function computeData(raw) {
   // Xuất TP tổng
   var xuatTpTot = tpList.reduce(function(s,tp){return s+(xuatTotTp[tp]||0);},0);
 
+  // Trim to last month with any data
+  var lastM = 0;
+  for (var mi = 11; mi >= 0; mi--) {
+    var hasAny = nhapByMonth[mi] > 0 || gcByMonth[mi] > 0;
+    if (!hasAny) TPS.forEach(function(tp){ hasAny = hasAny || (nhanByMonthTp[tp]||[])[mi]>0 || (xuatByMonthTp[tp]||[])[mi]>0; });
+    if (hasAny) { lastM = mi + 1; break; }
+  }
+  if (lastM < 6) lastM = 6; // minimum 6 months
+  nhapByMonth  = nhapByMonth.slice(0, lastM);
+  gcByMonth    = gcByMonth.slice(0, lastM);
+  TPS.forEach(function(tp){
+    if (nhanByMonthTp[tp]) nhanByMonthTp[tp] = nhanByMonthTp[tp].slice(0, lastM);
+    if (xuatByMonthTp[tp]) xuatByMonthTp[tp] = xuatByMonthTp[tp].slice(0, lastM);
+  });
+  gcDrcByMonth = gcDrcByMonth.slice(0, lastM);
+
   return {
+    lastM: lastM,
     // NVL
     NHAP_NVL: nhapByMonth,
     GC: gcByMonth,
@@ -1424,8 +1437,8 @@ function computeData(raw) {
     KH_LOG: khLog.slice(-15),
     HD_PCT: hdPct,
     // KH còn giữ nguyên từ static (cần dữ liệu kế hoạch riêng)
-    NHAP_KH: [800,2000,2500,2200,3000,3500],
-    GC_KH:   [5000,12000,16000,11000,8500,13000],
+    NHAP_KH: [800,2000,2500,2200,3000,3500,3800,4000,3500,3000,2500,2000],
+    GC_KH:   [5000,12000,16000,11000,8500,13000,14000,15000,12000,10000,9000,8000],
     TON_KH3: {'SVR 10':2200,'SVR 20':1000,'SVR 3L':300,'SVR CV50':250},
     HM_DATA: hmData
   };
@@ -1477,6 +1490,14 @@ function fetchAndRefresh() {
 
     var D = computeData(raw);
 
+    // Log computed results for debugging
+    console.log('[GS] Computed NHAP_NVL:', JSON.stringify(D.NHAP_NVL));
+    console.log('[GS] Computed GC:', JSON.stringify(D.GC));
+    console.log('[GS] Computed TPS:', JSON.stringify(D.TPS));
+    console.log('[GS] Computed NHAN_TOT:', JSON.stringify(D.NHAN_TOT));
+    console.log('[GS] Computed XUAT_TOT:', JSON.stringify(D.XUAT_TOT));
+    console.log('[GS] nhapTot:', D.nhapTot, '| gcTot:', D.gcTot, '| lastM:', D.lastM);
+
     // Update global vars used by chart builders
     NHAP_NVL = D.NHAP_NVL;
     GC       = D.GC;
@@ -1494,6 +1515,10 @@ function fetchAndRefresh() {
     HD_PCT   = D.HD_PCT.length > 0 ? D.HD_PCT : HD_PCT;
     HM_DATA  = D.hmData.length > 0 ? D.hmData : HM_DATA;
 
+    // Trim TL labels to match actual data length
+    if (D.lastM && D.lastM !== TL.length) {
+      TL = TL.slice(0, D.lastM);
+    }
     // Update timestamp
     var ts = document.getElementById('last-updated');
     var now = new Date();
