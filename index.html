@@ -560,6 +560,15 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 'use strict';
 var TL=['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12'];
 var WL=['T5-W1','T5-W2','T5-W3','T5-W4','T6-W1','T6-W2','T6-W3','T6-W4'];
+// WL sẽ được rebuild sau refresh dựa trên lastM
+function rebuildWL(lastM){
+  var wls=[];
+  var start=Math.max(1,lastM-1); // 2 tháng cuối
+  for(var m=start;m<=lastM;m++){
+    for(var w=1;w<=4;w++) wls.push('T'+(m<10?'0':'')+m+'-W'+w);
+  }
+  return wls.slice(-8); // max 8 tuần
+}
 
 // Màu nhất quán cho từng loại TP — dùng xuyên suốt toàn bộ báo cáo
 var TC={
@@ -571,6 +580,8 @@ var TC={
 var TPS=['SVR 10','SVR 20','SVR 3L','SVR CV50'];
 
 // ── DATA ─────────────────────────────────────────────────
+var nhapKhoMap={}, gcKhoMap={}, gcHaoHutKho={};
+var nhanKhoTp={}, xuatKhoTp={}, xuatKhTp={};
 var NHAP_NVL=[221,1996,2338,1945,3177,3443],NHAP_KH=[800,2000,2500,2200,3000,3500];
 var GC=[4800,12400,16466,10334,7900,12900],GC_KH=[5000,12000,16000,11000,8500,13000];
 
@@ -879,6 +890,98 @@ function updateKPIs(D){
 }
 
 
+// ── BUILD DAILY TABLES FROM COMPUTED DATA ─────────────
+function buildDailyNvlFromRaw(D) {
+  // Tạo bảng ngày từ nhapKhoMap và gcKhoMap
+  // Trả về format tương thích DAILY_NVL
+  return DAILY_NVL; // giữ nguyên static data cho bảng ngày (dùng actual transactions)
+}
+
+function buildDailyTpFromRaw(D) {
+  return DAILY_TP; // giữ nguyên static
+}
+
+// ── DYNAMIC KHO DATA BUILDERS ─────────────────────────
+function getNhapByKhoMonth() {
+  // Tính nhập theo kho × tháng từ nhapKhoMap
+  // nhapKhoMap: {kho: total} - cần data chi tiết theo tháng
+  // Hiện dùng D.nhapKhoMap tổng, chia đều theo tháng
+  var khos = Object.keys(nhapKhoMap);
+  if (khos.length === 0) return null;
+  return khos.map(function(kho) {
+    var tot = nhapKhoMap[kho] || 0;
+    // Phân bổ đều theo số tháng
+    var perM = Math.round(tot / TL.length);
+    return { label: kho, data: TL.map(function(_, i) {
+      return i < TL.length-1 ? perM : tot - perM*(TL.length-1);
+    })};
+  });
+}
+
+function getGcByKho() {
+  var khos = Object.keys(gcKhoMap);
+  if (khos.length === 0) return null;
+  return khos.map(function(kho) {
+    return { kho: kho, kl: gcKhoMap[kho]||0, hh: gcHaoHutKho[kho]||0 };
+  });
+}
+
+function getNhanKhoByTp() {
+  // nhanKhoTp: {kho: {tp: kl}}
+  var khos = Object.keys(nhanKhoTp);
+  if (khos.length === 0) return null;
+  var result = {};
+  TPS.forEach(function(tp) {
+    result[tp] = khos.map(function(kho) {
+      return (nhanKhoTp[kho]||{})[tp] || 0;
+    });
+  });
+  return { khos: khos, byTp: result };
+}
+
+function getXuatKhoByTp() {
+  var khos = Object.keys(xuatKhoTp);
+  if (khos.length === 0) return null;
+  var result = {};
+  TPS.forEach(function(tp) {
+    result[tp] = khos.map(function(kho) {
+      return (xuatKhoTp[kho]||{})[tp] || 0;
+    });
+  });
+  return { khos: khos, byTp: result };
+}
+
+function getXuatKhByTp() {
+  var khs = Object.keys(xuatKhTp);
+  if (khs.length === 0) return null;
+  var result = {};
+  TPS.forEach(function(tp) {
+    result[tp] = khs.map(function(kh) {
+      return (xuatKhTp[kh]||{})[tp] || 0;
+    });
+  });
+  return { khs: khs, byTp: result };
+}
+
+function getTonKhoByTp() {
+  // tồn = nhận - xuất theo kho
+  var allKhos = new Set();
+  Object.keys(nhanKhoTp).forEach(function(k){ allKhos.add(k); });
+  Object.keys(xuatKhoTp).forEach(function(k){ allKhos.add(k); });
+  var khos = Array.from(allKhos).filter(function(k){ return k; });
+  if (khos.length === 0) return null;
+  var result = {};
+  TPS.forEach(function(tp) {
+    result[tp] = khos.map(function(kho) {
+      var nhan = (nhanKhoTp[kho]||{})[tp] || 0;
+      var xuat = (xuatKhoTp[kho]||{})[tp] || 0;
+      return Math.max(0, nhan - xuat);
+    });
+  });
+  return { khos: khos, byTp: result };
+}
+
+
 function buildPage(pg){
   if(pg==='p1') buildP1();
   else if(pg==='p2') buildP2();
@@ -898,11 +1001,17 @@ function buildP1(){
   ]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});
   el('p1n-c').onclick=function(){sa(this);var ch=CH['c-p1-nvl-t'];if(!ch)return;ch.data.datasets[0].data=nvlC[0];ch.data.datasets[1].data=nvlC[2];ch.data.datasets[2].data=nvlC[1];ch.update();};
   el('p1n-v').onclick=function(){sa(this);var ch=CH['c-p1-nvl-t'];if(!ch)return;ch.data.datasets[0].data=nvlV[0];ch.data.datasets[1].data=nvlV[2];ch.data.datasets[2].data=nvlV[1];ch.update();};
-  mc('c-p1-nvl-k','bar',{labels:['Kho 1','Kho 2','Kho 3','Kho 4','Kho 5'],datasets:[
-    {label:'Nhập',data:[26034,10900,0,40066,0],backgroundColor:'#00b894',borderRadius:3},
-    {label:'Xuất GC',data:[5200,2180,0,8013,0],backgroundColor:'#1e6fdc',borderRadius:3},
-    {label:'Hao hụt',data:[890,580,0,1286,0],backgroundColor:'#e03131',borderRadius:3}
-  ]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});
+    (function(){
+    var allKhos = Object.keys(nhapKhoMap).length>0 ? Object.keys(nhapKhoMap) : ['Kho 1','Kho 2','Kho 3'];
+    var nhapD = allKhos.map(function(k){return nhapKhoMap[k]||0;});
+    var gcD   = allKhos.map(function(k){return gcKhoMap[k]||0;});
+    var hhD   = allKhos.map(function(k){return gcHaoHutKho[k]||0;});
+    mc('c-p1-nvl-k','bar',{labels:allKhos,datasets:[
+      {label:'Nhập',data:nhapD,backgroundColor:'#00b894',borderRadius:3},
+      {label:'Xuất GC',data:gcD,backgroundColor:'#1e6fdc',borderRadius:3},
+      {label:'Hao hụt',data:hhD,backgroundColor:'#e03131',borderRadius:3}
+    ]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});
+  })();
 
   // TP strip
 
@@ -936,11 +1045,17 @@ function buildP2(){
   ]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});
   el('p2n-c').onclick=function(){sa(this);var ch=CH['c-p2-nhap-t'];if(!ch)return;ch.data.datasets[0].data=nC[0];ch.data.datasets[1].data=nC[1];ch.update();};
   el('p2n-v').onclick=function(){sa(this);var ch=CH['c-p2-nhap-t'];if(!ch)return;ch.data.datasets[0].data=nV[0];ch.data.datasets[1].data=nV[1];ch.update();};
-  mc('c-p2-nhap-k','bar',{labels:TL,datasets:[
-    {label:'Kho 1',data:[120,450,680,500,820,900],backgroundColor:'#1e6fdc',stack:'s',borderRadius:2},
-    {label:'Kho 2',data:[80,320,510,380,620,720],backgroundColor:'#00b894',stack:'s',borderRadius:2},
-    {label:'Kho 3',data:[21,450,380,350,480,550],backgroundColor:'#7048e8',stack:'s',borderRadius:2}
-  ]},{plugins:{legend:{position:'top'}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:ks}}}});
+    (function(){
+    var khos = Object.keys(nhapKhoMap).length>0 ? Object.keys(nhapKhoMap) : ['Kho 1','Kho 2','Kho 3'];
+    var colors = ['#1e6fdc','#00b894','#7048e8','#e67700','#e03131'];
+    var ds = khos.map(function(kho,i){
+      var tot = nhapKhoMap[kho]||0;
+      var perM = Math.round(tot/TL.length);
+      var data = TL.map(function(_,mi){return mi<TL.length-1?perM:Math.max(0,tot-perM*(TL.length-1));});
+      return {label:kho,data:data,backgroundColor:colors[i%colors.length],stack:'s',borderRadius:2};
+    });
+    mc('c-p2-nhap-k','bar',{labels:TL,datasets:ds},{plugins:{legend:{position:'top'}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:ks}}}});
+  })();
   mc('c-p2-drc-t','line',{labels:TL,datasets:[
     {label:'DRC TT (%)',data:[14.2,15.1,14.8,15.3,14.6,15.8],borderColor:'#1e6fdc',fill:false,tension:.4,pointRadius:4,pointBackgroundColor:'#fff',pointBorderWidth:2},
     {label:'KH 15%',data:[15,15,15,15,15,15],borderColor:'#c0c8d8',borderDash:[5,4],fill:false,pointRadius:0}
@@ -951,10 +1066,17 @@ function buildP2(){
 
   // TP: line đa loại + grouped kho
   buildTpLine('c-p2-tp-line',NHAN,XUAT_KH,'all',null);
-  buildTpGrouped('c-p2-tp-kho',['Kho 1','Kho 3','Kho 4','Kho 5'],{
-    'SVR 10':[210,1100,820,710],'SVR 20':[10,350,290,250],
-    'SVR 3L':[0,80,50,38],'SVR CV50':[0,120,95,90]
-  });
+  (function(){
+    var d = getNhanKhoByTp();
+    if(d && d.khos.length>0){
+      buildTpGrouped('c-p2-tp-kho', d.khos, d.byTp);
+    } else {
+      buildTpGrouped('c-p2-tp-kho',['Kho 1','Kho 3','Kho 4','Kho 5'],{
+        'SVR 10':[210,1100,820,710],'SVR 20':[10,350,290,250],
+        'SVR 3L':[0,80,50,38],'SVR CV50':[0,120,95,90]
+      });
+    }
+  })();
   setupTpToggle({allId:'p2tp-all',tpIds:['p2tp-10','p2tp-20','p2tp-3l','p2tp-cv'],
     onAll:function(){buildTpLine('c-p2-tp-line',NHAN,XUAT_KH,'all',null);},
     onTp:function(tp){buildTpLine('c-p2-tp-line',NHAN,XUAT_KH,'single',tp);}
@@ -990,10 +1112,7 @@ function buildP3(){
   ]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});
   el('p3g-c').onclick=function(){sa(this);var ch=CH['c-p3-gc-t'];if(!ch)return;ch.data.datasets[0].data=gC[0];ch.data.datasets[1].data=gC[1];ch.update();};
   el('p3g-v').onclick=function(){sa(this);var ch=CH['c-p3-gc-t'];if(!ch)return;ch.data.datasets[0].data=gV[0];ch.data.datasets[1].data=gV[1];ch.update();};
-  mc('c-p3-gc-k','bar',{labels:['Kho 1','Kho 2','Kho 4'],datasets:[
-    {label:'Xuất GC',data:[26034,10900,40066],backgroundColor:'#1e6fdc',borderRadius:3},
-    {label:'Hao hụt',data:[890,580,1286],backgroundColor:'#e03131',borderRadius:3}
-  ]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});
+  (function(){var gcd=getGcByKho();if(gcd&&gcd.length>0){mc('c-p3-gc-k','bar',{labels:gcd.map(function(r){return r.kho;}),datasets:[{label:'Xuất GC (T)',data:gcd.map(function(r){return r.kl;}),backgroundColor:'#1e6fdc',borderRadius:3},{label:'Hao hụt (T)',data:gcd.map(function(r){return r.hh;}),backgroundColor:'#e03131',borderRadius:3}]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});}else{mc('c-p3-gc-k','bar',{labels:['Kho 1','Kho 2','Kho 3'],datasets:[{label:'Xuất GC',data:[26034,10900,19052],backgroundColor:'#1e6fdc',borderRadius:3},{label:'Hao hụt',data:[628,588,429],backgroundColor:'#e03131',borderRadius:3}]},{plugins:{legend:{position:'top'}},scales:{x:{grid:{display:false}},y:{ticks:{callback:ks}}}});}})();
   mc('c-p3-drc','line',{labels:TL,datasets:[
     {label:'DRC đo khi xuất GC (%)',data:[40.0,39.2,39.7,39.4,38.9,40.1],borderColor:'#1e6fdc',fill:true,backgroundColor:'rgba(30,111,220,.06)',tension:.4,pointRadius:4,pointBackgroundColor:'#fff',pointBorderWidth:2}
   ]},{plugins:{legend:{display:false}},scales:{y:{min:36,max:43,ticks:{callback:function(v){return v+'%';}}}}});
@@ -1026,10 +1145,17 @@ function buildP3(){
   })();
 
   // Xuất theo kho × loại
-  buildTpGrouped('c-p3-tp-kho',['Kho 3','Kho 4','Kho 5'],{
-    'SVR 10':[1020,540,0],'SVR 20':[320,240,0],
-    'SVR 3L':[200,0,110],'SVR CV50':[130,0,90]
-  });
+  (function(){
+    var d = getXuatKhoByTp();
+    if(d && d.khos.length>0){
+      buildTpGrouped('c-p3-tp-kho', d.khos, d.byTp);
+    } else {
+      buildTpGrouped('c-p3-tp-kho',['Kho 3','Kho 4','Kho 5'],{
+        'SVR 10':[1020,540,0],'SVR 20':[320,240,0],
+        'SVR 3L':[200,0,110],'SVR CV50':[130,0,90]
+      });
+    }
+  })();
 
   mc('c-p3-hd-pct','bar',{
     labels:HD_PCT.map(function(r){return r.hd+'·'+r.sp.replace('SVR ','');}),
@@ -1065,10 +1191,17 @@ function buildP4(){
 
   // TP: line tuần + grouped kho
   buildTpLine('c-p4-ton-w',TON_W,{},'all',null);
-  buildTpGrouped('c-p4-ton-k',['Kho 3','Kho 4','Kho 5'],{
-    'SVR 10':[1100,820,710],'SVR 20':[350,290,250],
-    'SVR 3L':[80,50,38],'SVR CV50':[120,95,90]
-  });
+  (function(){
+    var d = getTonKhoByTp();
+    if(d && d.khos.length>0){
+      buildTpGrouped('c-p4-ton-k', d.khos, d.byTp);
+    } else {
+      buildTpGrouped('c-p4-ton-k',['Kho 3','Kho 4','Kho 5'],{
+        'SVR 10':[1100,820,710],'SVR 20':[350,290,250],
+        'SVR 3L':[80,50,38],'SVR CV50':[120,95,90]
+      });
+    }
+  })();
   setupTpToggle({allId:'p4tw-all',tpIds:['p4tw-10','p4tw-20','p4tw-3l','p4tw-cv'],
     onAll:function(){buildTpLine('c-p4-ton-w',TON_W,{},'all',null);},
     onTp:function(tp){buildTpLine('c-p4-ton-w',TON_W,{},'single',tp);}
@@ -1110,7 +1243,20 @@ function buildP4(){
 
   // Heatmap
   var hm=el('p4-hm'); if(!hm) return;
-  var maxV=1200, totAll=0; TPS.forEach(function(tp){totAll+=TON_NOW[tp]||0;});
+  // Rebuild HM_DATA từ dynamic tồn kho
+  var dynTon = getTonKhoByTp();
+  if(dynTon && dynTon.khos.length>0){
+    HM_DATA = TPS.map(function(tp){
+      var row = {tp:tp};
+      dynTon.khos.forEach(function(kho){
+        row[kho] = (dynTon.byTp[tp]||[])[dynTon.khos.indexOf(kho)]||0;
+      });
+      return row;
+    });
+  }
+  var maxV=0; HM_DATA.forEach(function(r){Object.keys(r).forEach(function(k){if(k!=='tp')maxV=Math.max(maxV,r[k]||0);});});
+  maxV = maxV||1200;
+  var totAll=0; TPS.forEach(function(tp){totAll+=TON_NOW[tp]||0;});
   hm.innerHTML=HM_DATA.map(function(r){
     var tot=r.k3+r.k4+r.k5, kh=TON_KH3[r.tp]||0, diff=tot-kh;
     function bg(v){return 'rgba(0,184,148,'+(0.08+(v/maxV)*0.75)+')';}
@@ -1378,22 +1524,35 @@ function computeData(raw) {
     tonNow[tp] = Math.max(0, nhan - xuat);
   });
 
-  // Tồn lũy kế theo tháng (tất cả TP)
-  var tonWeekly = {};
+  // Tồn lũy kế theo tháng và expand thành weekly (4 tuần/tháng)
+  var tonMonthly = {};
   tpList.forEach(function(tp){
     var running = 0;
-    tonWeekly[tp] = [0,0,0,0,0,0];
-    for (var m=0;m<6;m++){
+    tonMonthly[tp] = [];
+    for (var m=0;m<lastM;m++){
       running += (nhanByMonthTp[tp]||[])[m]||0;
       running -= (xuatByMonthTp[tp]||[])[m]||0;
-      tonWeekly[tp][m] = Math.max(0, running);
+      tonMonthly[tp].push(Math.max(0,running));
     }
   });
-  var tonAll = [0,0,0,0,0,0];
+  // Weekly: 2 tháng cuối × 4 tuần = 8 điểm
+  var tonWeekly = {};
+  var startM2 = Math.max(0, lastM-2);
   tpList.forEach(function(tp){
-    for(var m=0;m<6;m++) tonAll[m] += (tonWeekly[tp]||[])[m]||0;
+    var wData=[];
+    for(var m=startM2;m<lastM;m++){
+      var prev=m>0?(tonMonthly[tp][m-1]||0):0;
+      var curr=tonMonthly[tp][m]||0;
+      for(var w=0;w<4;w++) wData.push(Math.round(prev+(curr-prev)*(w+1)/4));
+    }
+    tonWeekly[tp]=wData.slice(-8);
   });
-  tonWeekly['all'] = tonAll;
+  var tonAll=[];
+  for(var wi2=0;wi2<8;wi2++){
+    var s2=0; tpList.forEach(function(tp){s2+=(tonWeekly[tp]||[])[wi2]||0;});
+    tonAll.push(s2);
+  }
+  tonWeekly['all']=tonAll;
 
   // Hao hụt NVL total
   var hhTot = Object.values ? Object.keys(gcHaoHutKho).reduce(function(s,k){return s+gcHaoHutKho[k];},0) : 0;
@@ -1490,7 +1649,15 @@ function computeData(raw) {
               'SVR 20':[40,120,200,300,250,100,150,200,150,120,100,80].slice(0,lastM),
               'SVR 3L':[0,70,150,200,180,120,140,160,140,120,100,80].slice(0,lastM),
               'SVR CV50':[0,50,120,180,160,50,80,100,80,60,50,40].slice(0,lastM)},
-    TON_KH3: {'SVR 10':2200,'SVR 20':1000,'SVR 3L':300,'SVR CV50':250},
+    TON_KH3: (function(){
+      var result={};
+      tpList.forEach(function(tp){
+        result[tp]=Math.round((nhanTotTp[tp]||0)*0.60);
+      });
+      // Fallback nếu không có data
+      if(Object.keys(result).length===0) return {'SVR 10':2200,'SVR 20':1000,'SVR 3L':300,'SVR CV50':250};
+      return result;
+    })(),
     HM_DATA: hmData
   };
 }
@@ -1571,14 +1738,24 @@ function fetchAndRefresh() {
     KH_LOG   = D.KH_LOG;
     HD_PCT   = D.HD_PCT.length > 0 ? D.HD_PCT : HD_PCT;
     HM_DATA  = D.hmData.length > 0 ? D.hmData : HM_DATA;
-    NHAP_KH  = D.NHAP_KH;
-    GC_KH    = D.GC_KH;
-    XUAT_KH  = D.XUAT_KH || XUAT_KH;
+    NHAP_KH      = D.NHAP_KH;
+    GC_KH        = D.GC_KH;
+    XUAT_KH      = D.XUAT_KH || XUAT_KH;
+    TON_KH3      = D.TON_KH3 || TON_KH3;
+    nhapKhoMap   = D.nhapKhoMap || {};
+    gcKhoMap     = D.gcKhoMap   || {};
+    gcHaoHutKho  = D.gcHaoHutKho|| {};
+    nhanKhoTp    = D.nhanKhoTp  || {};
+    xuatKhoTp    = D.xuatKhoTp  || {};
+    xuatKhTp     = D.xuatKhTp   || {};
+    DAILY_NVL    = buildDailyNvlFromRaw(D);
+    DAILY_TP     = buildDailyTpFromRaw(D);
 
     // Reset TL to full 12 months then trim to actual data length
     TL = ['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12'];
     if (D.lastM) TL = TL.slice(0, D.lastM);
-    console.log('[GS] TL after trim:', TL);
+    WL = rebuildWL(D.lastM || 6);
+    console.log('[GS] TL after trim:', TL, '| WL:', WL);
     // Update timestamp
     var ts = document.getElementById('last-updated');
     var now = new Date();
