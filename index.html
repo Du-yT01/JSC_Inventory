@@ -203,10 +203,10 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
   <!-- NVL -->
   <div class="sec"><div class="sec-line"></div><span class="sec-pill nvl-pill">🌿 Nguyên Vật Liệu — Mủ Đông Chén</span><div class="sec-line"></div></div>
   <div class="row c4">
-    <div class="card kpi t"><div class="kl">Nhập từ TNHH Q1–Q2</div><div class="kv" style="color:var(--teal)">16,854</div><div class="ks">Tấn · 39 phiếu</div><div class="ks up">▲ +18% vs kỳ trước</div></div>
-    <div class="card kpi b"><div class="kl">Xuất → Gia công</div><div class="kv" style="color:var(--blue)">62,800</div><div class="ks">Tấn · 25 đợt</div><div class="ks up">▲ +12% vs kỳ trước</div></div>
-    <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)">2,756</div><div class="ks">Tấn · 4.4% tổng xuất</div></div>
-    <div class="card kpi sk"><div class="kl">DRC trung bình</div><div class="kv" style="color:var(--sky)">15.1<span style="font-size:1rem">%</span></div><div class="ks">Khi nhập · Khi xuất: 39.6%</div></div>
+    <div class="card kpi t"><div class="kl">Nhập từ TNHH Q1–Q2</div><div class="kv" style="color:var(--teal)"><span id="kpi-nhap-tot">16,854</span></div><div class="ks">Tấn · 39 phiếu</div><div class="ks up">▲ +18% vs kỳ trước</div></div>
+    <div class="card kpi b"><div class="kl">Xuất → Gia công</div><div class="kv" style="color:var(--blue)"><span id="kpi-gc-tot">62,800</span></div><div class="ks">Tấn · 25 đợt</div><div class="ks up">▲ +12% vs kỳ trước</div></div>
+    <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)"><span id="kpi-hh-tot">2,756</span></div><div class="ks">Tấn · 4.4% tổng xuất</div></div>
+    <div class="card kpi sk"><div class="kl">DRC trung bình</div><div class="kv" style="color:var(--sky)"><span id="kpi-drc-avg">15.1</span><span style="font-size:1rem">%</span></div><div class="ks">Khi nhập · Khi xuất: 39.6%</div></div>
   </div>
   <div class="row c6-6">
     <div class="card">
@@ -228,10 +228,10 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 
   <!-- TP SUMMARY STRIP thay cho card riêng từng loại -->
   <div class="row c4">
-    <div class="card kpi g"><div class="kl">Tổng TP nhận về Q1–Q2</div><div class="kv" style="color:var(--grn)">8,441</div><div class="ks">Tấn · 4 loại · 11 lô</div><div class="ks up">▲ +22% vs kỳ trước</div></div>
-    <div class="card kpi sk"><div class="kl">Tỷ lệ chuyển đổi GC → TP</div><div class="kv" style="color:var(--sky)">13.4<span style="font-size:1rem">%</span></div><div class="ks">KL TP / KL NVL giao GC</div><div class="ks up">▲ +1.2% vs kỳ trước</div></div>
+    <div class="card kpi g"><div class="kl">Tổng TP nhận về Q1–Q2</div><div class="kv" style="color:var(--grn)"><span id="kpi-tp-nhan-tot">8,441</span></div><div class="ks">Tấn · 4 loại · 11 lô</div><div class="ks up">▲ +22% vs kỳ trước</div></div>
+    <div class="card kpi sk"><div class="kl">Tỷ lệ chuyển đổi GC → TP</div><div class="kv" style="color:var(--sky)"><span id="kpi-conv-rate">13.4</span><span style="font-size:1rem">%</span></div><div class="ks">KL TP / KL NVL giao GC</div><div class="ks up">▲ +1.2% vs kỳ trước</div></div>
     <div class="card kpi b"><div class="kl">Loại TP tỷ trọng cao nhất</div><div class="kv" style="color:var(--blue)">SVR 10</div><div class="ks">63% nhận · 61% xuất Q1–Q2</div></div>
-    <div class="card kpi o"><div class="kl">Tổng TP xuất KH Q1–Q2</div><div class="kv" style="color:var(--amb)">4,448</div><div class="ks">Tấn · 42 lần · 3 khách hàng</div><div class="ks up">▲ +35% vs kỳ trước</div></div>
+    <div class="card kpi o"><div class="kl">Tổng TP xuất KH Q1–Q2</div><div class="kv" style="color:var(--amb)"><span id="kpi-tp-xuat-tot">4,448</span></div><div class="ks">Tấn · 42 lần · 3 khách hàng</div><div class="ks up">▲ +35% vs kỳ trước</div></div>
   </div>
 
   <!-- Cặp chart 1: Nhận vs Xuất theo loại (grouped line + donut) -->
@@ -283,7 +283,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 <div id="p2" class="page">
   <div class="sec"><div class="sec-line"></div><span class="sec-pill nvl-pill">🌿 Nhập NVL — Mủ Đông Chén từ TNHH</span><div class="sec-line"></div></div>
   <div class="row c4">
-    <div class="card kpi t"><div class="kl">Tổng KL Nhập Q1–Q2</div><div class="kv" style="color:var(--teal)">16,854</div><div class="ks">Tấn · 39 phiếu</div><div class="ks up">▲ +18% vs kỳ trước</div></div>
+    <div class="card kpi t"><div class="kl">Tổng KL Nhập Q1–Q2</div><div class="kv" style="color:var(--teal)"><span id="kpi-p2-nhap-tot">16,854</span></div><div class="ks">Tấn · 39 phiếu</div><div class="ks up">▲ +18% vs kỳ trước</div></div>
     <div class="card kpi b"><div class="kl">DRC trung bình</div><div class="kv" style="color:var(--blue)">15.1<span style="font-size:1rem">%</span></div><div class="ks">Hàm lượng thực tế</div></div>
     <div class="card kpi g"><div class="kl">Tháng nhập cao nhất</div><div class="kv" style="color:var(--grn)">3,734</div><div class="ks">T06/2026</div></div>
     <div class="card kpi o"><div class="kl">Số HĐ đang hiệu lực</div><div class="kv" style="color:var(--amb)">12</div><div class="ks">Từ 3 đối tác TNHH</div></div>
@@ -374,8 +374,8 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
   <div class="sec"><div class="sec-line"></div><span class="sec-pill nvl-pill">🌿 Xuất NVL → Nhà máy Gia công</span><div class="sec-line"></div></div>
   <div class="row c4">
     <div class="card kpi b"><div class="kl">Tổng Xuất NVL Q1–Q2</div><div class="kv" style="color:var(--blue)">62,800</div><div class="ks">Tấn · 25 đợt</div><div class="ks up">▲ +12% vs kỳ trước</div></div>
-    <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)">2,756</div><div class="ks">4.4% tổng xuất GC</div></div>
-    <div class="card kpi sk"><div class="kl">DRC TB khi xuất GC</div><div class="kv" style="color:var(--sky)">39.6<span style="font-size:1rem">%</span></div></div>
+    <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)"><span id="kpi-p3-hh-tot">2,756</span></div><div class="ks">4.4% tổng xuất GC</div></div>
+    <div class="card kpi sk"><div class="kl">DRC TB khi xuất GC</div><div class="kv" style="color:var(--sky)"><span id="kpi-gc-drc">39.6</span><span style="font-size:1rem">%</span></div></div>
     <div class="card kpi r"><div class="kl">Kho xuất nhiều nhất</div><div class="kv" style="color:var(--red)">Kho 4</div><div class="ks">40,066 T · 64%</div></div>
   </div>
   <!-- Cặp chart: trend + kho & hao hụt (cross-filter) -->
@@ -426,7 +426,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
   <!-- TP summary strip -->
   <div class="row c4">
     <div class="card kpi o"><div class="kl">Tổng TP xuất Q1–Q2</div><div class="kv" style="color:var(--amb)">4,448</div><div class="ks">Tấn · 42 lần · 3 KH</div><div class="ks up">▲ +35% vs kỳ trước</div></div>
-    <div class="card kpi b"><div class="kl">Doanh thu ước tính Q1–Q2</div><div class="kv" style="color:var(--blue)">1.56<span style="font-size:1rem">B</span></div><div class="ks">Tỷ đồng (giá bình quân ~350k/T)</div></div>
+    <div class="card kpi b"><div class="kl">Doanh thu ước tính Q1–Q2</div><div class="kv" style="color:var(--blue)"><span id="kpi-doanh-thu">1.56</span><span style="font-size:1rem">B</span></div><div class="ks">Tỷ đồng (giá bình quân ~350k/T)</div></div>
     <div class="card kpi g"><div class="kl">Tỷ lệ hoàn thành HĐ TB</div><div class="kv" style="color:var(--grn)">74<span style="font-size:1rem">%</span></div><div class="ks">Trung bình 7 hợp đồng đang TH</div></div>
     <div class="card kpi r"><div class="kl">Tháng xuất cao nhất</div><div class="kv" style="color:var(--red)">T04</div><div class="ks">1,234 Tấn · SVR 10 chiếm 53%</div></div>
   </div>
@@ -509,7 +509,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
   <!-- TP summary strip tồn -->
   <div class="row c4">
     <div class="card kpi g"><div class="kl">Tổng tồn TP hiện tại</div><div class="kv" style="color:var(--grn)">3,993</div><div class="ks">Tấn · Nhận 8,441 − Xuất 4,448</div><div class="ks up">▲ Đủ đáp ứng KH Q3 (106%)</div></div>
-    <div class="card kpi b"><div class="kl">Tỷ lệ luân chuyển TP</div><div class="kv" style="color:var(--blue)">52.7<span style="font-size:1rem">%</span></div><div class="ks">Đã xuất / Tổng nhận Q1–Q2</div></div>
+    <div class="card kpi b"><div class="kl">Tỷ lệ luân chuyển TP</div><div class="kv" style="color:var(--blue)"><span id="kpi-luan-chuyen">52.7</span><span style="font-size:1rem">%</span></div><div class="ks">Đã xuất / Tổng nhận Q1–Q2</div></div>
     <div class="card kpi r"><div class="kl">Loại TP cần bổ sung gấp</div><div class="kv" style="color:var(--red)">SVR 3L</div><div class="ks">Tồn 168T · KH Q3: 300T · thiếu 44%</div></div>
     <div class="card kpi sk"><div class="kl">Kho tồn nhiều nhất</div><div class="kv" style="color:var(--sky)">Kho 3</div><div class="ks">1,650T · 41% tổng tồn TP</div></div>
   </div>
@@ -832,6 +832,53 @@ function buildDaily(mode){
 el('daily-sl').addEventListener('change',function(){buildDaily(this.value);});
 
 // ── PAGE BUILDS ───────────────────────────────────────────
+function updateKPIs(D){
+  function set(id, val){ var e=el(id); if(e) e.textContent=val; }
+  var nhapTot = D.nhapTot || 0;
+  var gcTot   = D.gcTot   || 0;
+  var hhTot   = D.hhTot   || 0;
+  var nhanTpTot = D.nhanTpTot || 0;
+  var xuatTpTot = D.xuatTpTot || 0;
+  var tonTot  = Object.keys(D.TON_NOW||{}).reduce(function(s,k){return s+(D.TON_NOW[k]||0);},0);
+  var convRate = gcTot>0 ? Math.round(nhanTpTot/gcTot*1000)/10 : 0;
+  var luanChuyen = nhanTpTot>0 ? Math.round(xuatTpTot/nhanTpTot*1000)/10 : 0;
+  var drcAvg  = D.nhapDrcAvg || 0;
+  var gcDrcAvg = D.gcDrcAvg || 0;
+  var doanhThu = Math.round(xuatTpTot*350/1000*10)/10; // ước tính tỷ đồng
+
+  // Format helpers
+  function fmtT(n){ return Math.round(n).toLocaleString('vi'); }
+  function fmtPct(n){ return n+'%'; }
+
+  // P1 NVL
+  set('kpi-nhap-tot', fmtT(nhapTot));
+  set('kpi-gc-tot',   fmtT(gcTot));
+  set('kpi-hh-tot',   fmtT(hhTot));
+  set('kpi-drc-avg',  drcAvg+'%');
+  // P1 TP
+  set('kpi-tp-nhan-tot', fmtT(nhanTpTot));
+  set('kpi-conv-rate',   convRate+'%');
+  set('kpi-tp-xuat-tot', fmtT(xuatTpTot));
+  // P2 NVL
+  set('kpi-p2-nhap-tot', fmtT(nhapTot));
+  set('kpi-p2-drc-avg',  drcAvg+'%');
+  // P2 TP
+  set('kpi-p2-tp-nhan',  fmtT(nhanTpTot));
+  // P3 NVL
+  set('kpi-p3-gc-tot',   fmtT(gcTot));
+  set('kpi-p3-hh-tot',   fmtT(hhTot));
+  set('kpi-gc-drc',      gcDrcAvg+'%');
+  // P3 TP
+  set('kpi-p3-tp-xuat',  fmtT(xuatTpTot));
+  set('kpi-doanh-thu',   doanhThu+'B');
+  // P4 NVL
+  set('kpi-p4-hh-tot',   fmtT(hhTot));
+  // P4 TP
+  set('kpi-ton-tot',     fmtT(tonTot));
+  set('kpi-luan-chuyen', luanChuyen+'%');
+}
+
+
 function buildPage(pg){
   if(pg==='p1') buildP1();
   else if(pg==='p2') buildP2();
@@ -1536,6 +1583,9 @@ function fetchAndRefresh() {
     var ts = document.getElementById('last-updated');
     var now = new Date();
     if (ts) ts.textContent = 'Cập nhật: ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ' ' + now.getDate() + '/' + (now.getMonth()+1) + '/' + now.getFullYear();
+
+    // Update KPI cards
+    updateKPIs(D);
 
     // Destroy ALL existing charts so they rebuild cleanly with new data + new TL length
     Object.keys(CH).forEach(function(id){
