@@ -892,13 +892,111 @@ function updateKPIs(D){
 
 // ── BUILD DAILY TABLES FROM COMPUTED DATA ─────────────
 function buildDailyNvlFromRaw(D) {
-  // Tạo bảng ngày từ nhapKhoMap và gcKhoMap
-  // Trả về format tương thích DAILY_NVL
-  return DAILY_NVL; // giữ nguyên static data cho bảng ngày (dùng actual transactions)
+  // Rebuild bảng ngày từ NHAP_LOG và GC_LOG thực tế
+  // Tập hợp tất cả ngày có giao dịch
+  var dayMap = {}; // key: 'dd/mm', value: {kho: {n, x, h}}
+
+  // Nhập kho
+  (D.NHAP_LOG||[]).forEach(function(r){
+    var day = r.n ? r.n.substring(0,5) : ''; // dd/mm
+    if(!day) return;
+    if(!dayMap[day]) dayMap[day] = {kl_nhap:{}, kl_xuat:{}, drc_list:[]};
+    var kho = r.k || 'Kho 1';
+    dayMap[day].kl_nhap[kho] = (dayMap[day].kl_nhap[kho]||0) + (r.kc||r.kg||0);
+    if(r.drc) dayMap[day].drc_list.push(r.drc);
+  });
+
+  // Xuất GC
+  (D.GC_LOG||[]).forEach(function(r){
+    var day = r.n ? r.n.substring(0,5) : '';
+    if(!day) return;
+    if(!dayMap[day]) dayMap[day] = {kl_nhap:{}, kl_xuat:{}, drc_list:[]};
+    var kho = r.k || 'Kho 1';
+    dayMap[day].kl_xuat[kho] = (dayMap[day].kl_xuat[kho]||0) + (r.kl||0);
+    dayMap[day].hao_hut = (dayMap[day].hao_hut||0) + (r.hh||0);
+  });
+
+  // Sắp xếp theo ngày
+  var days = Object.keys(dayMap).sort(function(a,b){
+    // dd/mm → so sánh mm trước rồi dd
+    var am=parseInt(a.split('/')[1]), ad=parseInt(a.split('/')[0]);
+    var bm=parseInt(b.split('/')[1]), bd=parseInt(b.split('/')[0]);
+    return am!==bm ? am-bm : ad-bd;
+  });
+
+  // Tính lũy kế tồn theo kho
+  var runTon = {};
+  return days.map(function(day, idx){
+    var r = dayMap[day];
+    var allKhos = new Set();
+    Object.keys(r.kl_nhap||{}).forEach(function(k){allKhos.add(k);});
+    Object.keys(r.kl_xuat||{}).forEach(function(k){allKhos.add(k);});
+    var khos = Array.from(allKhos).sort();
+
+    var sumN=0, sumX=0, sumH=r.hao_hut||0;
+    khos.forEach(function(kho){
+      var n = r.kl_nhap[kho]||0;
+      var x = r.kl_xuat[kho]||0;
+      runTon[kho] = Math.max(0,(runTon[kho]||0)+n-x);
+      sumN+=n; sumX+=x;
+    });
+    var totTon = Object.keys(runTon).reduce(function(s,k){return s+runTon[k];},0);
+    var drcAvg = r.drc_list.length>0
+      ? Math.round(r.drc_list.reduce(function(a,b){return a+b;},0)/r.drc_list.length*10)/10 : 0;
+
+    // Format cho bảng: dùng Kho 1, Kho 2, Kho 3 nếu có
+    return {
+      d: day,
+      k1n: r.kl_nhap['Kho 1']||0, k1x: r.kl_xuat['Kho 1']||0, k1h:0, k1t: runTon['Kho 1']||0,
+      k2n: r.kl_nhap['Kho 2']||0, k2x: r.kl_xuat['Kho 2']||0, k2h:0, k2t: runTon['Kho 2']||0,
+      k3n: r.kl_nhap['Kho 3']||0, k3x: r.kl_xuat['Kho 3']||0, k3h:0, k3t: runTon['Kho 3']||0,
+      drc: drcAvg, tot: totTon, sp: false
+    };
+  });
 }
 
 function buildDailyTpFromRaw(D) {
-  return DAILY_TP; // giữ nguyên static
+  // Rebuild DAILY_TP từ TP_LOG và KH_LOG
+  var result = {};
+  var tpKeys = { 'SVR 10':'svr10','SVR 20':'svr20','SVR 3L':'svr3l','SVR CV50':'svrcv50' };
+  (D.TPS||[]).forEach(function(tp){ result[tpKeys[tp]||tp] = []; });
+
+  var allTps = D.TPS||[];
+  allTps.forEach(function(tp){
+    var key = tpKeys[tp]||tp;
+    var dayMap = {};
+    // Nhận TP
+    (D.TP_LOG||[]).filter(function(r){return r.sp===tp;}).forEach(function(r){
+      var day=r.n?r.n.substring(0,5):''; if(!day) return;
+      if(!dayMap[day]) dayMap[day]={k3n:0,k3x:0,k4n:0,k4x:0,k5n:0,k5x:0};
+      var f = r.k==='Kho 3'?'k3n':r.k==='Kho 4'?'k4n':'k5n';
+      dayMap[day][f] = (dayMap[day][f]||0)+(r.kl||0);
+    });
+    // Xuất KH
+    (D.KH_LOG||[]).filter(function(r){return r.sp===tp;}).forEach(function(r){
+      var day=r.n?r.n.substring(0,5):''; if(!day) return;
+      if(!dayMap[day]) dayMap[day]={k3n:0,k3x:0,k4n:0,k4x:0,k5n:0,k5x:0};
+      var f = r.k==='Kho 3'?'k3x':r.k==='Kho 4'?'k4x':'k5x';
+      dayMap[day][f] = (dayMap[day][f]||0)+(r.sl||0);
+    });
+    var days=Object.keys(dayMap).sort(function(a,b){
+      var am=parseInt(a.split('/')[1]),ad=parseInt(a.split('/')[0]);
+      var bm=parseInt(b.split('/')[1]),bd=parseInt(b.split('/')[0]);
+      return am!==bm?am-bm:ad-bd;
+    });
+    var rt={k3:0,k4:0,k5:0};
+    result[key] = days.map(function(day){
+      var r=dayMap[day];
+      rt.k3=Math.max(0,rt.k3+(r.k3n||0)-(r.k3x||0));
+      rt.k4=Math.max(0,rt.k4+(r.k4n||0)-(r.k4x||0));
+      rt.k5=Math.max(0,rt.k5+(r.k5n||0)-(r.k5x||0));
+      return {d:day,k3n:r.k3n,k3x:r.k3x,k3t:rt.k3,
+              k4n:r.k4n,k4x:r.k4x,k4t:rt.k4,
+              k5n:r.k5n,k5x:r.k5x,k5t:rt.k5,
+              tot:rt.k3+rt.k4+rt.k5};
+    });
+  });
+  return result;
 }
 
 // ── DYNAMIC KHO DATA BUILDERS ─────────────────────────
@@ -1558,10 +1656,19 @@ function computeData(raw) {
   var hhTot = Object.values ? Object.keys(gcHaoHutKho).reduce(function(s,k){return s+gcHaoHutKho[k];},0) : 0;
   var hhPct  = gcTot > 0 ? Math.round(hhTot/gcTot*1000)/10 : 0;
 
-  // HD % hoàn thành (từ xuatRows, so với hợp đồng bán)
-  var hdPct = Object.keys(hdLog).slice(0,10).map(function(hd){
-    var d = hdLog[hd];
-    return {hd: hd.substr(0,12), kh: d.kh.substr(0,10), sp: d.sp, pct: 75}; // pct cần dữ liệu KH
+  // HD % hoàn thành - tính từ KH_LOG
+  var hdKlMap = {}; // hd → {kh, sp, xuatTot}
+  khLog.forEach(function(r){
+    if(!r.hd) return;
+    if(!hdKlMap[r.hd]) hdKlMap[r.hd] = {hd:r.hd, kh:r.kh, sp:r.tp, xuatTot:0};
+    hdKlMap[r.hd].xuatTot += r.kl||0;
+  });
+  var hdPct = Object.keys(hdKlMap).slice(0,12).map(function(hd){
+    var d = hdKlMap[hd];
+    // Ước tính KH HĐ = xuất thực tế / 0.75 (giả sử đã giao 75%)
+    var kh_sl = Math.round(d.xuatTot / 0.75);
+    var pct = kh_sl > 0 ? Math.min(100, Math.round(d.xuatTot/kh_sl*100)) : 75;
+    return {hd:(d.hd||'').substr(0,12), kh:(d.kh||'').substr(0,12), sp:d.sp||'', pct:pct};
   });
 
   // Heatmap tồn kho theo kho × TP
@@ -1637,10 +1744,10 @@ function computeData(raw) {
     xuatKhoTp: xuatKhoTp,
     hmData: hmData,
     // Logs
-    NHAP_LOG: nhapLog.slice(-20),
-    TP_LOG: tpLog.slice(-15),
-    GC_LOG: gcLog.slice(-15),
-    KH_LOG: khLog.slice(-15),
+    NHAP_LOG: nhapLog,
+    TP_LOG: tpLog,
+    GC_LOG: gcLog,
+    KH_LOG: khLog,
     HD_PCT: hdPct,
     // KH giữ nguyên từ static, trim theo lastM
     NHAP_KH: [800,2000,2500,2200,3000,3500,3800,4000,3500,3000,2500,2000].slice(0,lastM),
@@ -1703,8 +1810,7 @@ function fetchAndRefresh() {
     console.log('[GS] tp ALL cols:',   raw.tp[0]   ? Object.keys(raw.tp[0]).join(' | ')   : '');
     console.log('[GS] xuat ALL cols:', raw.xuat[0] ? Object.keys(raw.xuat[0]).join(' | ') : '');
     // Sample data rows to verify values
-    console.log('[GS] nhap sample kl:', raw.nhap.slice(0,3).map(function(r){return r['Khối lượng mủ đông chén cân vào']||r['Khối lượng mủ đông chén']||'?';}));
-    console.log('[GS] nhap sample date:', raw.nhap.slice(0,3).map(function(r){return r['Ngày xuất hàng']||'?';}));
+
 
     var D;
     try {
@@ -1748,8 +1854,11 @@ function fetchAndRefresh() {
     nhanKhoTp    = D.nhanKhoTp  || {};
     xuatKhoTp    = D.xuatKhoTp  || {};
     xuatKhTp     = D.xuatKhTp   || {};
-    DAILY_NVL    = buildDailyNvlFromRaw(D);
-    DAILY_TP     = buildDailyTpFromRaw(D);
+    var newDailyNvl = buildDailyNvlFromRaw(D);
+    if(newDailyNvl && newDailyNvl.length > 0) DAILY_NVL = newDailyNvl;
+    var newDailyTp = buildDailyTpFromRaw(D);
+    if(newDailyTp && Object.keys(newDailyTp).length > 0) DAILY_TP = newDailyTp;
+    console.log('[GS] Daily NVL rows:', DAILY_NVL.length, '| Daily TP keys:', Object.keys(DAILY_TP));
 
     // Reset TL to full 12 months then trim to actual data length
     TL = ['T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12'];
