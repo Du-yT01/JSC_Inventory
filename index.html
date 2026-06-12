@@ -248,7 +248,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
   <div class="row c4">
     <div class="card kpi t"><div class="kl">Nhập từ TNHH Q1–Q2</div><div class="kv" style="color:var(--teal)"><span id="kpi-nhap-tot">108,177</span></div><div class="ks">Tấn · 126 phiếu</div><div class="ks up">▲ +18% vs kỳ trước</div></div>
     <div class="card kpi b"><div class="kl">Xuất → Gia công</div><div class="kv" style="color:var(--blue)"><span id="kpi-gc-tot">105,471</span></div><div class="ks">Tấn · 126 đợt</div><div class="ks up">▲ +12% vs kỳ trước</div></div>
-    <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)"><span id="kpi-hh-tot">2,706</span></div><div class="ks">Tấn · 4.4% tổng xuất</div></div>
+    <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)"><span id="kpi-hh-tot">2,706</span></div><div class="ks" id="kpi-p4-hh-ks">Tấn · 2.6% tổng xuất GC</div></div>
     <div class="card kpi sk"><div class="kl">DRC trung bình</div><div class="kv" style="color:var(--sky)"><span id="kpi-drc-avg">15.3%</span><span style="font-size:1rem">%</span></div><div class="ks">Khi nhập · Khi xuất: 39.8%</div></div>
   </div>
   <div class="row c6-6">
@@ -530,9 +530,9 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 <div id="p4" class="page">
   <div class="sec"><div class="sec-line"></div><span class="sec-pill nvl-pill">🌿 Tồn NVL — Mủ Đông Chén</span><div class="sec-line"></div></div>
   <div class="row c3">
-    <div class="card kpi o"><div class="kl">Tồn NVL cuối kỳ</div><div class="kv" style="color:var(--amb)">~0</div><div class="ks">Toàn bộ đã giao gia công</div></div>
+    <div class="card kpi o"><div class="kl">Tồn NVL cuối kỳ</div><div class="kv" style="color:var(--amb)"><span id="kpi-ton-nvl">9,211</span></div><div class="ks" id="kpi-ton-nvl-ks">Tấn · chờ xuất GC</div></div>
     <div class="card kpi o"><div class="kl">Hao hụt lũy kế</div><div class="kv" style="color:var(--amb)">2,706</div><div class="ks">4.4% · Kho 1/2/4</div></div>
-    <div class="card kpi b"><div class="kl">Kho hao hụt nhiều nhất</div><div class="kv" style="color:var(--blue)">Kho 4</div><div class="ks">1,286 T · 46.7%</div></div>
+    <div class="card kpi b"><div class="kl">Kho hao hụt nhiều nhất</div><div class="kv" style="color:var(--blue)"><span id="kpi-max-hh-kho">Kho 2</span></div><div class="ks" id="kpi-max-hh-ks">1,033 T · 38.2%</div></div>
   </div>
   <!-- Cặp chart NVL: tồn trend + hao hụt kho (cross-filter) -->
   <div class="row c6-6">
@@ -1485,7 +1485,16 @@ function updateKPIs(D){
   // Hao hụt
   set('kpi-p4-hh-tot', fmtT(hhTot));
   var hhPct = D.nhapTot>0 ? Math.round(hhTot/D.nhapTot*1000)/10 : 0;
-  var hhKs = el('kpi-p4-hh-ks'); if(hhKs) hhKs.textContent = hhPct+'% · 3 kho';
+  var hhKs = el('kpi-p4-hh-ks'); if(hhKs) hhKs.textContent = hhPct+'% · tổng xuất GC';
+  // Kho hao hụt nhiều nhất
+  var hhKhoMap = D.gcHaoHutKho||{};
+  var maxHhKho = Object.keys(hhKhoMap).reduce(function(a,b){return (hhKhoMap[a]||0)>(hhKhoMap[b]||0)?a:b;},'');
+  if(maxHhKho){
+    set('kpi-max-hh-kho', maxHhKho);
+    var maxHhKs = el('kpi-max-hh-ks');
+    var maxHhV = hhKhoMap[maxHhKho]||0;
+    if(maxHhKs) maxHhKs.textContent = fmtT(maxHhV)+' T · '+Math.round(maxHhV/hhTot*100)+'%';
+  }
   // P4 TP
   set('kpi-ton-tot',     fmtT(tonTot));
   set('kpi-luan-chuyen', luanChuyen+'%');
@@ -1891,7 +1900,6 @@ function buildP3(){
 }
 
 function buildP4(){
-  console.log('[P4] building... nhanKhoTp:', JSON.stringify(nhanKhoTp), 'xuatKhoTp:', JSON.stringify(xuatKhoTp));
 
   // NVL
   // Tồn NVL lũy kế = tổng nhập - tổng xuất GC đến tháng i
@@ -1969,7 +1977,6 @@ function buildP4(){
   var hm=el('p4-hm'); if(!hm) return;
   // Rebuild HM_DATA từ dynamic tồn kho
   var dynTon = getTonKhoByTp();
-  console.log('[P4] dynTon:', JSON.stringify(dynTon));
   console.log('[P4] HM_DATA before:', JSON.stringify(HM_DATA));
   if(dynTon && dynTon.khos.length>0){
     HM_DATA = TPS.map(function(tp){
@@ -2165,15 +2172,10 @@ function computeData(raw) {
   if(tpRows.length>0){
     var r0=tpRows[0];
     var allKeys=Object.keys(r0);
-    console.log('[DEBUG] tp cols total:', allKeys.length);
-    console.log('[DEBUG] tp cols 11-20:', allKeys.slice(11,21).join(' | '));
-    console.log('[DEBUG] tp cols 21-30:', allKeys.slice(21,31).join(' | '));
     // Try to find kho/tp/sl columns
     var khoKey=allKeys.find(function(k){return k.indexOf('kho')>-1||k.indexOf('Kho')>-1;});
     var tpKey =allKeys.find(function(k){return k.indexOf('TP - Tên')>-1||k.indexOf('Tên TP')>-1;});
     var slKey =allKeys.find(function(k){return k.indexOf('TP - SL')>-1||k.indexOf('Số lượng')>-1;});
-    console.log('[DEBUG] tp detected: kho='+khoKey+' | tp='+tpKey+' | sl='+slKey);
-    console.log('[DEBUG] tp row0 values:', JSON.stringify(allKeys.slice(11,21).map(function(k){return k+':'+r0[k];})));
   }
   tpRows.forEach(function(r) {
     var dateStr = r['Ngày nhập lô hàng'] || r['Cập nhật lần cuối'] || '';
@@ -2189,7 +2191,6 @@ function computeData(raw) {
     if (!nhanTotTp[tp]) nhanTotTp[tp] = 0;
     var m = getMonth(dateStr);
     if (tpList.length <= 2 && tpLog.length < 3) {
-      console.log('[DEBUG] tp row: dateStr='+dateStr+' m='+m+' tp='+tp+' kl='+kl+' kho='+kho);
     }
     if (m >= 1 && m <= 12) nhanByMonthTp[tp][m-1] += kl;
     nhanTotTp[tp] += kl;
@@ -2199,8 +2200,6 @@ function computeData(raw) {
     }
     tpLog.push({n: fmtDate(dateStr), hd: hd, k: kho, sp: tp, kl: kl, ca: ca});
   });
-  console.log('[DEBUG] nhanByMonthTp:', JSON.stringify(nhanByMonthTp));
-  console.log('[DEBUG] xuatByMonthTp will be built next');
 
   // ── XUẤT KHÁCH HÀNG (Sheet 7) ───────────────────────
   // Cột: "Cập nhật lần cuối", "Kho hàng", "HH - Tên", "HH - Số lượng"
@@ -2214,12 +2213,9 @@ function computeData(raw) {
   if(xuatRows.length>0){
     var rx0=xuatRows[0];
     var xKeys=Object.keys(rx0);
-    console.log('[DEBUG] xuat cols 11-20:', xKeys.slice(11,21).join(' | '));
     var khoXKey=xKeys.find(function(k){return k.indexOf('Kho')>-1||k.indexOf('kho')>-1;});
     var tpXKey =xKeys.find(function(k){return k.indexOf('HH - Tên')>-1||k.indexOf('Tên SP')>-1;});
     var slXKey =xKeys.find(function(k){return k.indexOf('HH - Số lượng')>-1||k.indexOf('Số lượng')>-1;});
-    console.log('[DEBUG] xuat detected: kho='+khoXKey+' | tp='+tpXKey+' | sl='+slXKey);
-    console.log('[DEBUG] xuat row0 values:', JSON.stringify(xKeys.slice(11,22).map(function(k){return k+':'+rx0[k];})));
   }
   xuatRows.forEach(function(r) {
     var dateStr = r['Cập nhật lần cuối'] || '';
@@ -2352,9 +2348,6 @@ function computeData(raw) {
       tonMonthly[tp].push(Math.max(0,running));
     }
   });
-  console.log('[DEBUG] tonMonthly:', JSON.stringify(tonMonthly));
-  console.log('[DEBUG] xuatByMonthTp:', JSON.stringify(xuatByMonthTp));
-  console.log('[DEBUG] lastM:', lastM, '| startM2:', Math.max(0, lastM-2));
   // Weekly: 2 tháng cuối × 4 tuần = 8 điểm
   // Fix: dùng tonMonthly thực tế, không để running=0 khi xuat > nhan trong tháng
   var tonWeekly = {};
@@ -2370,7 +2363,6 @@ function computeData(raw) {
     // Tháng lastM-1: interpolate từ mMid → mLast (4 tuần)
     for(var w=0;w<4;w++) wData.push(Math.max(0,Math.round(mMid + (mLast-mMid)*(w+1)/4)));
     tonWeekly[tp] = wData.slice(-8);
-    console.log('[DEBUG] tonWeekly['+tp+']:', JSON.stringify(tonWeekly[tp]), '| mMid='+mMid+' mLast='+mLast);
   });
   var tonAll=[];
   for(var wi2=0;wi2<8;wi2++){
