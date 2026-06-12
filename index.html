@@ -1467,8 +1467,15 @@ function updateKPIs(D){
   // P3 TP
   set('kpi-p3-tp-xuat',  fmtT(xuatTpTot));
   set('kpi-doanh-thu',   doanhThu+'B');
-  // P4 NVL
-  set('kpi-p4-hh-tot',   fmtT(hhTot));
+  // P4 NVL - Tồn NVL = nhập - xuất GC
+  var tonNvl = (D.nhapTot||0) - (D.gcTot||0);
+  set('kpi-ton-nvl', tonNvl > 0 ? fmtT(tonNvl) : '~0');
+  var tonNvlKs = el('kpi-ton-nvl-ks');
+  if(tonNvlKs) tonNvlKs.textContent = tonNvl > 100 ? 'Tấn · chờ xuất GC' : 'Toàn bộ đã giao GC';
+  // Hao hụt
+  set('kpi-p4-hh-tot', fmtT(hhTot));
+  var hhPct = D.nhapTot>0 ? Math.round(hhTot/D.nhapTot*1000)/10 : 0;
+  var hhKs = el('kpi-p4-hh-ks'); if(hhKs) hhKs.textContent = hhPct+'% · 3 kho';
   // P4 TP
   set('kpi-ton-tot',     fmtT(tonTot));
   set('kpi-luan-chuyen', luanChuyen+'%');
@@ -1874,12 +1881,18 @@ function buildP3(){
 }
 
 function buildP4(){
+  console.log('[P4] building... nhanKhoTp:', JSON.stringify(nhanKhoTp), 'xuatKhoTp:', JSON.stringify(xuatKhoTp));
 
   // NVL
-  var nvlTon=NHAP_NVL.map(function(v,i){return Math.max(0,v-Math.round(GC[i]/4));});
+  // Tồn NVL lũy kế = tổng nhập - tổng xuất GC đến tháng i
+  var nvlTon=(function(){
+    var run=0, res=[];
+    NHAP_NVL.forEach(function(v,i){ run+=v-(GC[i]||0); res.push(Math.max(0,Math.round(run))); });
+    return res;
+  })();
   mc('c-p4-nvl-t','line',{labels:TL,datasets:[
     {label:'Tồn NVL (T)',data:cu(nvlTon),borderColor:'#00b894',fill:true,backgroundColor:'rgba(0,184,148,.07)',tension:.4,pointRadius:4,pointBackgroundColor:'#fff',pointBorderWidth:2},
-    {label:'Xuất GC÷4 (T)',data:cu(GC.map(function(v){return Math.round(v/4);})),borderColor:'#1e6fdc',fill:false,tension:.4,pointRadius:3,borderDash:[4,4]}
+    {label:'Xuất GC (T)',data:cu(GC),borderColor:'#1e6fdc',fill:false,tension:.4,pointRadius:3,borderDash:[4,4]}
   ]},{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:ks}}}});
   mc('c-p4-nvl-hh','bar',{labels:['Kho 1','Kho 2','Kho 4'],datasets:[
     {label:'Hao hụt lũy kế (T)',data:[890,580,1286],backgroundColor:['#e67700','#f59e0b','#e03131'],borderRadius:5},
@@ -2135,7 +2148,7 @@ function computeData(raw) {
 
   tpRows.forEach(function(r) {
     var dateStr = r['Ngày nhập lô hàng'] || r['Cập nhật lần cuối'] || '';
-    var kho = r['Tên kho nhận'] || '';
+    var kho = r['Tên kho nhận'] || r['Tên kho'] || r['Kho nhận'] || '';
     var tp  = (r['TP - Tên'] || '').trim();
     var kl  = toNum(r['TP - SL'] || 0);
     var hd  = r['Số hợp đồng'] || r['Tên phiếu'] || '';
@@ -2166,7 +2179,7 @@ function computeData(raw) {
 
   xuatRows.forEach(function(r) {
     var dateStr = r['Cập nhật lần cuối'] || '';
-    var kho = r['Kho hàng'] || '';
+    var kho = r['Kho hàng'] || r['Tên kho'] || r['Kho xuất'] || '';
     var tp  = (r['HH - Tên'] || '').trim();
     var kl  = toNum(r['HH - Số lượng'] || 0);
     var kh  = r['Tên công ty bên A'] || '';
@@ -2425,11 +2438,19 @@ function fetchAndRefresh() {
 
     // Log computed results for debugging
     console.log('[GS] Computed NHAP_NVL:', JSON.stringify(D.NHAP_NVL));
-    console.log('[GS] Computed GC:', JSON.stringify(D.GC));
     console.log('[GS] Computed TPS:', JSON.stringify(D.TPS));
-    console.log('[GS] Computed NHAN_TOT:', JSON.stringify(D.NHAN_TOT));
-    console.log('[GS] Computed XUAT_TOT:', JSON.stringify(D.XUAT_TOT));
     console.log('[GS] nhapTot:', D.nhapTot, '| gcTot:', D.gcTot, '| lastM:', D.lastM);
+    console.log('[GS] nhanKhoTp:', JSON.stringify(D.nhanKhoTp));
+    console.log('[GS] xuatKhoTp:', JSON.stringify(D.xuatKhoTp));
+    console.log('[GS] hmData:', JSON.stringify(D.hmData));
+    console.log('[GS] TON_W all:', JSON.stringify(D.TON_W&&D.TON_W.all));
+    console.log('[GS] tp raw sample:', raw.tp[0] ? JSON.stringify(Object.entries(raw.tp[0]).slice(11,15)) : 'empty');
+    console.log('[GS] tp kho sample:', raw.tp.slice(0,3).map(function(r){return r['Tên kho nhận']||'?';}));
+    console.log('[GS] tp tp sample:', raw.tp.slice(0,3).map(function(r){return r['TP - Tên']||'?';}));
+    console.log('[GS] tp sl sample:', raw.tp.slice(0,3).map(function(r){return r['TP - SL']||'?';}));
+    console.log('[GS] xuat kho sample:', raw.xuat.slice(0,3).map(function(r){return r['Kho hàng']||'?';}));
+    console.log('[GS] xuat tp sample:', raw.xuat.slice(0,3).map(function(r){return r['HH - Tên']||'?';}));
+    console.log('[GS] xuat raw sample:', raw.xuat[0] ? JSON.stringify(Object.entries(raw.xuat[0]).slice(11,15)) : 'empty');
 
     // Update global vars used by chart builders
     NHAP_NVL = D.NHAP_NVL;
