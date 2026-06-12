@@ -2146,6 +2146,20 @@ function computeData(raw) {
   var tpLog = [];
   var tpList = [];
 
+  // Log first row to debug
+  if(tpRows.length>0){
+    var r0=tpRows[0];
+    var allKeys=Object.keys(r0);
+    console.log('[DEBUG] tp cols total:', allKeys.length);
+    console.log('[DEBUG] tp cols 11-20:', allKeys.slice(11,21).join(' | '));
+    console.log('[DEBUG] tp cols 21-30:', allKeys.slice(21,31).join(' | '));
+    // Try to find kho/tp/sl columns
+    var khoKey=allKeys.find(function(k){return k.indexOf('kho')>-1||k.indexOf('Kho')>-1;});
+    var tpKey =allKeys.find(function(k){return k.indexOf('TP - Tên')>-1||k.indexOf('Tên TP')>-1;});
+    var slKey =allKeys.find(function(k){return k.indexOf('TP - SL')>-1||k.indexOf('Số lượng')>-1;});
+    console.log('[DEBUG] tp detected: kho='+khoKey+' | tp='+tpKey+' | sl='+slKey);
+    console.log('[DEBUG] tp row0 values:', JSON.stringify(allKeys.slice(11,21).map(function(k){return k+':'+r0[k];})));
+  }
   tpRows.forEach(function(r) {
     var dateStr = r['Ngày nhập lô hàng'] || r['Cập nhật lần cuối'] || '';
     var kho = r['Tên kho nhận'] || r['Tên kho'] || r['Kho nhận'] || '';
@@ -2159,6 +2173,9 @@ function computeData(raw) {
     if (!nhanByMonthTp[tp]) nhanByMonthTp[tp] = [0,0,0,0,0,0,0,0,0,0,0,0];
     if (!nhanTotTp[tp]) nhanTotTp[tp] = 0;
     var m = getMonth(dateStr);
+    if (tpList.length <= 2 && tpLog.length < 3) {
+      console.log('[DEBUG] tp row: dateStr='+dateStr+' m='+m+' tp='+tp+' kl='+kl+' kho='+kho);
+    }
     if (m >= 1 && m <= 12) nhanByMonthTp[tp][m-1] += kl;
     nhanTotTp[tp] += kl;
     if (kho) {
@@ -2167,6 +2184,8 @@ function computeData(raw) {
     }
     tpLog.push({n: fmtDate(dateStr), hd: hd, k: kho, sp: tp, kl: kl, ca: ca});
   });
+  console.log('[DEBUG] nhanByMonthTp:', JSON.stringify(nhanByMonthTp));
+  console.log('[DEBUG] xuatByMonthTp will be built next');
 
   // ── XUẤT KHÁCH HÀNG (Sheet 7) ───────────────────────
   // Cột: "Cập nhật lần cuối", "Kho hàng", "HH - Tên", "HH - Số lượng"
@@ -2177,6 +2196,16 @@ function computeData(raw) {
   var khLog = [];
   var hdLog = {}; // hd → {so_hd, kh, sp, kl}
 
+  if(xuatRows.length>0){
+    var rx0=xuatRows[0];
+    var xKeys=Object.keys(rx0);
+    console.log('[DEBUG] xuat cols 11-20:', xKeys.slice(11,21).join(' | '));
+    var khoXKey=xKeys.find(function(k){return k.indexOf('Kho')>-1||k.indexOf('kho')>-1;});
+    var tpXKey =xKeys.find(function(k){return k.indexOf('HH - Tên')>-1||k.indexOf('Tên SP')>-1;});
+    var slXKey =xKeys.find(function(k){return k.indexOf('HH - Số lượng')>-1||k.indexOf('Số lượng')>-1;});
+    console.log('[DEBUG] xuat detected: kho='+khoXKey+' | tp='+tpXKey+' | sl='+slXKey);
+    console.log('[DEBUG] xuat row0 values:', JSON.stringify(xKeys.slice(11,22).map(function(k){return k+':'+rx0[k];})));
+  }
   xuatRows.forEach(function(r) {
     var dateStr = r['Cập nhật lần cuối'] || '';
     var kho = r['Kho hàng'] || r['Tên kho'] || r['Kho xuất'] || '';
