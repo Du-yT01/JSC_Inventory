@@ -24,13 +24,6 @@ body{display:flex;background:var(--bg);}
 .sb-logo{height:54px;display:flex;align-items:center;gap:10px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.07);font-weight:800;font-size:.92rem;color:var(--acc);letter-spacing:.01em;}
 .sb-logo-icon{width:28px;height:28px;background:var(--acc);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
 .nav-sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.28);padding:14px 18px 4px;}
-.nav-grp{margin-bottom:2px;}
-.nav-grp-hdr{padding:9px 16px;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:9px;color:rgba(255,255,255,.85);font-weight:700;letter-spacing:.01em;user-select:none;transition:background .15s;border-radius:0 6px 6px 0;margin-right:8px;}
-.nav-grp-hdr:hover{background:var(--sb2);}
-.nav-grp.on .nav-grp-hdr{color:#fff;}
-.nav-grp-arrow{margin-left:auto;font-size:.7rem;transition:transform .2s;opacity:.6;}
-.nav-grp.collapsed .nav-grp-arrow{transform:rotate(-90deg);}
-.nav-grp-body{padding-left:8px;}
 .nav-it{padding:8px 18px;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:10px;border-radius:0 8px 8px 0;margin-right:10px;transition:all .15s;position:relative;color:rgba(255,255,255,.6);font-weight:500;}
 .nav-it:hover{background:var(--sb2);color:rgba(255,255,255,.9);}
 .nav-it.on{background:var(--sb3);color:#fff;font-weight:700;}
@@ -62,10 +55,9 @@ body{display:flex;background:var(--bg);}
 .tp-pill{background:var(--pl);color:#5b21b6;}
 
 /* ── GRID ── */
-.row{display:grid;gap:12px;width:100%;min-width:0;}
+.row{display:grid;gap:12px;}
 .c2{grid-template-columns:1fr 1fr;} .c3{grid-template-columns:1fr 1fr 1fr;}
-.c4{grid-template-columns:repeat(4,minmax(140px,1fr));}
-.c5{grid-template-columns:repeat(5,minmax(140px,1fr));}
+.c4{grid-template-columns:1fr 1fr 1fr 1fr;}
 .c6-6{grid-template-columns:6fr 6fr;} .c4-8{grid-template-columns:4fr 8fr;}
 .c3-9{grid-template-columns:3fr 9fr;} .c4-4-4{grid-template-columns:4fr 4fr 4fr;}
 .c3-5-4{grid-template-columns:3fr 5fr 4fr;} .c5-7{grid-template-columns:5fr 7fr;}
@@ -81,13 +73,13 @@ body{display:flex;background:var(--bg);}
 .cw-xl{position:relative;height:280px;}
 
 /* ── KPI CARD ── */
-.kpi{padding:14px 16px;gap:4px;justify-content:center;border-top:3px solid transparent;}
+.kpi{padding:14px 16px;gap:2px;justify-content:center;border-top:3px solid;}
 .kpi.t{border-top-color:var(--teal);}  .kpi.b{border-top-color:var(--blue);}
 .kpi.g{border-top-color:var(--grn);}   .kpi.o{border-top-color:var(--amb);}
 .kpi.r{border-top-color:var(--red);}   .kpi.p{border-top-color:var(--purp);}
 .kpi.rs{border-top-color:var(--rose);} .kpi.sk{border-top-color:var(--sky);}
 .kl{font-size:.67rem;color:var(--soft);}
-.kv{font-size:1.5rem;font-weight:800;line-height:1.1;letter-spacing:-.02em;}
+.kv{font-size:1.65rem;font-weight:800;line-height:1.1;letter-spacing:-.01em;}
 .ks{font-size:.64rem;color:var(--soft);margin-top:2px;}
 .up{color:var(--grn);font-size:.65rem;font-weight:700;}
 .dn{color:var(--red);font-size:.65rem;font-weight:700;}
@@ -95,7 +87,7 @@ body{display:flex;background:var(--bg);}
 /* ── TP SUMMARY STRIP ── (thay cho cards riêng từng loại) */
 .tp-strip{background:var(--card);border-radius:10px;border:1px solid var(--bdr);padding:12px 16px;}
 .tp-strip-ttl{font-size:.76rem;font-weight:700;color:var(--dark);margin-bottom:10px;}
-
+.tp-strip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .tp-item{border-radius:8px;padding:10px 12px;border:1.5px solid;position:relative;overflow:hidden;}
 .tp-item-name{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
 .tp-item-val{font-size:1.35rem;font-weight:800;line-height:1.1;}
@@ -150,12 +142,8 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 .daily-ctrl{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
 .daily-ctrl label{font-size:.73rem;font-weight:700;color:var(--soft);}
 .ton-wrap{overflow:auto;max-height:320px;}
-.ton-wrap table thead{box-shadow:0 2px 4px rgba(0,0,0,.08);}
 .ton-tbl{border-collapse:collapse;font-size:.7rem;white-space:nowrap;width:100%;}
-.ton-tbl th{padding:5px 8px;text-align:center;font-weight:700;font-size:.65rem;color:var(--soft);border:1px solid var(--bdr);background:#fafbfc;position:sticky;top:0;z-index:3;}
-.ton-tbl thead tr:nth-child(2) th{top:var(--hdr1-h,28px);z-index:2;}
-.ton-tbl thead tr:nth-child(1) th.lh{z-index:5;}
-.ton-tbl thead tr:nth-child(2) th.lh{z-index:5;top:var(--hdr1-h,28px);}
+.ton-tbl th{padding:5px 8px;text-align:center;font-weight:700;font-size:.65rem;color:var(--soft);border:1px solid var(--bdr);background:#fafbfc;position:sticky;top:0;z-index:2;}
 .ton-tbl th.lh{text-align:left;position:sticky;left:0;z-index:3;background:#fafbfc;min-width:80px;}
 .ton-tbl th.gn{background:var(--sb);color:rgba(255,255,255,.9);border-color:#243f63;}
 .ton-tbl th.gtp{background:#312e81;color:#fff;border-color:#3730a3;}
@@ -170,6 +158,28 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:#c8d0dc;border-radius:2px;}
+
+/* ── v5 additions ── */
+.nav-grp{margin-bottom:2px;}
+.nav-grp-hdr{padding:9px 16px;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:9px;color:rgba(255,255,255,.85);font-weight:700;letter-spacing:.01em;user-select:none;transition:background .15s;border-radius:0 6px 6px 0;margin-right:8px;}
+.nav-grp-hdr:hover{background:var(--sb2);}
+.nav-grp.on .nav-grp-hdr{color:#fff;}
+.nav-grp-arrow{margin-left:auto;font-size:.7rem;transition:transform .2s;opacity:.6;}
+.nav-grp.collapsed .nav-grp-arrow{transform:rotate(-90deg);}
+.nav-grp-body{padding-left:8px;}
+.tw-lg{overflow-x:auto;}
+.tw-lg table,.tw table{width:100%;border-collapse:collapse;font-size:.72rem;}
+.tw-lg th,.tw th{padding:8px 10px;background:#f7f8fa;font-weight:700;color:var(--soft);border-bottom:2px solid var(--bdr);white-space:nowrap;text-align:left;}
+.tw-lg td,.tw td{padding:7px 10px;border-bottom:1px solid var(--bdr);color:var(--dark);vertical-align:middle;}
+.tw-lg tfoot td,.tw tfoot td{background:#f7f8fa;font-weight:700;border-top:2px solid var(--bdr);}
+.tw-lg td.tr,.tw td.tr{text-align:right;}.tw-lg td.tc,.tw td.tc{text-align:center;}.tw-lg td.fw,.tw td.fw{font-weight:700;}
+.bdg{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;}
+.bdg-g{background:#dcfce7;color:#166534;}.bdg-a{background:#fef3c7;color:#92400e;}.bdg-r{background:#fee2e2;color:#991b1b;}
+.h{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;white-space:nowrap;}
+.hg{background:#dcfce7;color:#166534;}.hy{background:#fef3c7;color:#92400e;}.hr{background:#fee2e2;color:#991b1b;}
+.hb{background:#dbeafe;color:#1e40af;}.ht{background:#d1fae5;color:#065f46;}.ha{background:#ffedd5;color:#9a3412;}.hn{background:#f3f4f6;color:#374151;}
+.c5{grid-template-columns:repeat(5,minmax(140px,1fr));}
+.c5-7{grid-template-columns:5fr 7fr;}
 </style>
 </head>
 <body>
@@ -1973,22 +1983,25 @@ function buildP4(){
   var maxV=0; HM_DATA.forEach(function(r){Object.keys(r).forEach(function(k){if(k!=='tp')maxV=Math.max(maxV,r[k]||0);});});
   maxV = maxV||1200;
   var totAll=0; TPS.forEach(function(tp){totAll+=TON_NOW[tp]||0;});
+  // Dynamic kho columns from HM_DATA
+  var hmKhos = HM_DATA.length>0 ? Object.keys(HM_DATA[0]).filter(function(k){return k!=='tp';}) : ['Kho 4','Kho 5'];
+  var totAll = hmKhos.reduce(function(s,k){return s+HM_DATA.reduce(function(ss,r){return ss+(r[k]||0);},0);},0);
   hm.innerHTML=HM_DATA.map(function(r){
-    var tot=r.k3+r.k4+r.k5, kh=TON_KH3[r.tp]||0, diff=tot-kh;
-    function bg(v){return 'rgba(0,184,148,'+(0.08+(v/maxV)*0.75)+')';}
+    var tot=hmKhos.reduce(function(s,k){return s+(r[k]||0);},0);
+    var kh=TON_KH3[r.tp]||0, diff=tot-kh;
+    function bg(v){return v>0?'rgba(0,184,148,'+(0.08+(v/maxV)*0.75)+')':'rgba(0,0,0,.02)';}
     function fc(v){return(v/maxV)>0.35?'#fff':'#0a1628';}
-    var cl=TC[r.tp];
+    var cl=TC[r.tp]||{s:'#888'};
+    var pctTot = totAll>0?Math.round(tot/totAll*100):0;
     return '<tr>'
       +'<td class="fw" style="text-align:left;padding:5px 8px;border-left:3px solid '+cl.s+'">'+r.tp+'</td>'
-      +'<td style="background:'+bg(r.k3)+';color:'+fc(r.k3)+'">'+fmt(r.k3)+'</td>'
-      +'<td style="background:'+bg(r.k4)+';color:'+fc(r.k4)+'">'+fmt(r.k4)+'</td>'
-      +'<td style="background:'+bg(r.k5)+';color:'+fc(r.k5)+'">'+fmt(r.k5)+'</td>'
-      +'<td class="fw" style="background:'+bg(tot)+';color:'+fc(tot)+'">'+fmt(tot)+'</td>'
-      +'<td>'+(totAll>0?Math.round(tot/totAll*100):0)+'%</td>'
-      +'<td>'+fmt(kh)+'</td>'
-      +'<td class="fw" style="color:'+(diff>=0?'#00a854':'#e03131')+'">'+(diff>=0?'+':'')+fmt(diff)+'</td>'
+      +hmKhos.map(function(k){var v=r[k]||0;return '<td style="background:'+bg(v)+';color:'+fc(v)+'">'+fmt(v)+'</td>';}).join('')
+      +'<td style="background:'+bg(tot)+';color:'+fc(tot)+';font-weight:700">'+fmt(tot)+'</td>'
+      +'<td>'+pctTot+'%</td>'
+      +'<td style="font-weight:700">'+fmt(kh)+'</td>'
+      +'<td style="color:'+(diff>=0?'#00a854':'#e03131')+';font-weight:700">'+(diff>=0?'+':'')+fmt(diff)+'</td>'
       +'</tr>';
-  }).join('');
+  }).join('')
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2269,44 +2282,6 @@ function computeData(raw) {
     tonNow[tp] = Math.max(0, nhan - xuat);
   });
 
-  // Tồn lũy kế theo tháng và expand thành weekly (4 tuần/tháng)
-  var tonMonthly = {};
-  tpList.forEach(function(tp){
-    var running = 0;
-    tonMonthly[tp] = [];
-    for (var m=0;m<lastM;m++){
-      running += (nhanByMonthTp[tp]||[])[m]||0;
-      running -= (xuatByMonthTp[tp]||[])[m]||0;
-      tonMonthly[tp].push(Math.max(0,running));
-    }
-  });
-  console.log('[DEBUG] tonMonthly:', JSON.stringify(tonMonthly));
-  console.log('[DEBUG] xuatByMonthTp:', JSON.stringify(xuatByMonthTp));
-  console.log('[DEBUG] lastM:', lastM, '| startM2:', Math.max(0, lastM-2));
-  // Weekly: 2 tháng cuối × 4 tuần = 8 điểm
-  // Fix: dùng tonMonthly thực tế, không để running=0 khi xuat > nhan trong tháng
-  var tonWeekly = {};
-  var startM2 = Math.max(0, lastM-2);
-  tpList.forEach(function(tp){
-    var wData=[];
-    // Lấy tồn tháng (lastM-2) và (lastM-1) từ tonMonthly
-    var mPrev = tonMonthly[tp] ? (tonMonthly[tp][startM2-1]||0) : 0;
-    var mMid  = tonMonthly[tp] ? (tonMonthly[tp][startM2]||0)   : 0;
-    var mLast = tonMonthly[tp] ? (tonMonthly[tp][lastM-1]||0)   : 0;
-    // Tháng startM2: interpolate từ mPrev → mMid (4 tuần)
-    for(var w=0;w<4;w++) wData.push(Math.max(0,Math.round(mPrev + (mMid-mPrev)*(w+1)/4)));
-    // Tháng lastM-1: interpolate từ mMid → mLast (4 tuần)
-    for(var w=0;w<4;w++) wData.push(Math.max(0,Math.round(mMid + (mLast-mMid)*(w+1)/4)));
-    tonWeekly[tp] = wData.slice(-8);
-    console.log('[DEBUG] tonWeekly['+tp+']:', JSON.stringify(tonWeekly[tp]), '| mMid='+mMid+' mLast='+mLast);
-  });
-  var tonAll=[];
-  for(var wi2=0;wi2<8;wi2++){
-    var s2=0; tpList.forEach(function(tp){s2+=(tonWeekly[tp]||[])[wi2]||0;});
-    tonAll.push(s2);
-  }
-  tonWeekly['all']=tonAll;
-
   // Hao hụt NVL total
   var hhTot = Object.values ? Object.keys(gcHaoHutKho).reduce(function(s,k){return s+gcHaoHutKho[k];},0) : 0;
   var hhPct  = gcTot > 0 ? Math.round(hhTot/gcTot*1000)/10 : 0;
@@ -2365,6 +2340,44 @@ function computeData(raw) {
     if (xuatByMonthTp[tp]) xuatByMonthTp[tp] = xuatByMonthTp[tp].slice(0, lastM);
   });
   gcDrcByMonth = gcDrcByMonth.slice(0, lastM);
+
+  // Tồn lũy kế theo tháng và expand thành weekly (4 tuần/tháng)
+  var tonMonthly = {};
+  tpList.forEach(function(tp){
+    var running = 0;
+    tonMonthly[tp] = [];
+    for (var m=0;m<lastM;m++){
+      running += (nhanByMonthTp[tp]||[])[m]||0;
+      running -= (xuatByMonthTp[tp]||[])[m]||0;
+      tonMonthly[tp].push(Math.max(0,running));
+    }
+  });
+  console.log('[DEBUG] tonMonthly:', JSON.stringify(tonMonthly));
+  console.log('[DEBUG] xuatByMonthTp:', JSON.stringify(xuatByMonthTp));
+  console.log('[DEBUG] lastM:', lastM, '| startM2:', Math.max(0, lastM-2));
+  // Weekly: 2 tháng cuối × 4 tuần = 8 điểm
+  // Fix: dùng tonMonthly thực tế, không để running=0 khi xuat > nhan trong tháng
+  var tonWeekly = {};
+  var startM2 = Math.max(0, lastM-2);
+  tpList.forEach(function(tp){
+    var wData=[];
+    // Lấy tồn tháng (lastM-2) và (lastM-1) từ tonMonthly
+    var mPrev = tonMonthly[tp] ? (tonMonthly[tp][startM2-1]||0) : 0;
+    var mMid  = tonMonthly[tp] ? (tonMonthly[tp][startM2]||0)   : 0;
+    var mLast = tonMonthly[tp] ? (tonMonthly[tp][lastM-1]||0)   : 0;
+    // Tháng startM2: interpolate từ mPrev → mMid (4 tuần)
+    for(var w=0;w<4;w++) wData.push(Math.max(0,Math.round(mPrev + (mMid-mPrev)*(w+1)/4)));
+    // Tháng lastM-1: interpolate từ mMid → mLast (4 tuần)
+    for(var w=0;w<4;w++) wData.push(Math.max(0,Math.round(mMid + (mLast-mMid)*(w+1)/4)));
+    tonWeekly[tp] = wData.slice(-8);
+    console.log('[DEBUG] tonWeekly['+tp+']:', JSON.stringify(tonWeekly[tp]), '| mMid='+mMid+' mLast='+mLast);
+  });
+  var tonAll=[];
+  for(var wi2=0;wi2<8;wi2++){
+    var s2=0; tpList.forEach(function(tp){s2+=(tonWeekly[tp]||[])[wi2]||0;});
+    tonAll.push(s2);
+  }
+  tonWeekly['all']=tonAll;
 
   return {
     lastM: lastM,
