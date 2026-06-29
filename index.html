@@ -735,7 +735,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
     </div>
   </div>
 
-  <!-- Bullet PL + Chart tháng -->
+  <!-- Tiến độ theo PL + Chart giao hàng theo tháng -->
   <div class="row c6-6" style="margin-bottom:12px">
     <div class="card">
       <div class="ct" style="margin-bottom:8px">Tiến độ theo Phụ lục
@@ -745,19 +745,20 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
     </div>
     <div class="card">
       <div class="ct">Giao hàng theo Tháng</div>
-      <div style="flex:1;min-height:160px;position:relative"><canvas id="c-hd6-giao-thang"></canvas></div>
+      <div style="flex:1;min-height:180px;position:relative"><canvas id="c-hd6-giao-thang"></canvas></div>
     </div>
   </div>
 
-  <!-- Bảng phụ lục + nhật ký giao hàng side by side -->
+  <!-- Bảng phụ lục + nhật ký giao hàng — layout gốc c6-6 -->
   <div class="row c6-6">
+
     <!-- Bảng PL -->
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:11px 16px;border-bottom:1px solid var(--bdr);font-size:.78rem;font-weight:800;color:var(--dark)">📋 Chi tiết Phụ lục</div>
-      <div style="overflow-x:auto;overflow-y:auto;max-height:340px">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:200px">
         <table style="width:100%;border-collapse:collapse;font-size:.71rem">
-          <thead style="position:sticky;top:0;z-index:2">
-            <tr style="background:#f7f8fa">
+          <thead style="position:sticky;top:0;z-index:2;background:#f7f8fa">
+            <tr>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">Mã PL</th>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">SP</th>
               <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">Cam kết</th>
@@ -773,13 +774,13 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
       </div>
     </div>
 
-    <!-- Nhật ký giao -->
+    <!-- Nhật ký giao hàng -->
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:11px 16px;border-bottom:1px solid var(--bdr);font-size:.78rem;font-weight:800;color:var(--dark)">🚚 Nhật ký Giao hàng</div>
-      <div style="overflow-x:auto;overflow-y:auto;max-height:340px">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:200px">
         <table style="width:100%;border-collapse:collapse;font-size:.71rem">
-          <thead style="position:sticky;top:0;z-index:2">
-            <tr style="background:#f7f8fa">
+          <thead style="position:sticky;top:0;z-index:2;background:#f7f8fa">
+            <tr>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">Ngày</th>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">PL</th>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">SP</th>
@@ -791,7 +792,8 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
         </table>
       </div>
     </div>
-  </div>
+
+  </div><!-- /c6-6 bảng -->
 
 </div>
 
@@ -1852,14 +1854,18 @@ function buildP3(){
   // Chart TP xuất theo KH × loại — dùng data thực từ GSheet
   (function(){
     var d = getXuatKhByTp();
+    console.log('[P3] xuatKhTp keys:', Object.keys(xuatKhTp));
     if (d && d.khs.length > 0) {
-      buildTpGrouped('c-p3-tp-kh', d.khs, d.byTp);
+      // Rút gọn tên KH cho gọn trên chart
+      var shortKhs = d.khs.map(function(kh){
+        return kh.replace('CÔNG TY TNHH MTV ','').replace('CÔNG TY TNHH ','').replace('CÔNG TY CP ','').replace('Công ty TNHH MTV ','').replace('Công ty TNHH ','').replace('Công ty CP ','');
+      });
+      buildTpGrouped('c-p3-tp-kh', shortKhs, d.byTp);
     } else {
-      // Fallback static nếu chưa có data từ GSheet
       buildTpGrouped('c-p3-tp-kh',
-        ['Công ty TNHH Tường Minh','Công ty CP Đông Nam Á','Công ty TNHH Thắng Thắng Lợi'],
-        {'SVR 10':[1427,1499,1616],'SVR 20':[546,560,617],
-         'SVR 3L':[270,276,394],'SVR CV50':[151,252,223]});
+        ['Minh Văn','Á Âu','Thắng Hà'],
+        {'SVR 10':[1616,1427,1499],'SVR 20':[617,546,560],
+         'SVR 3L':[394,270,276],'SVR CV50':[223,151,252]});
     }
   })();
   setupTpToggle({allId:'p3tp-all',tpIds:['p3tp-10','p3tp-20','p3tp-3l','p3tp-cv'],
@@ -2076,9 +2082,14 @@ function toNum(s) {
 }
 
 function getMonth(dateStr) {
-  // dd/mm/yyyy HH:MM:SS hoặc dd/mm/yyyy
+  // Hỗ trợ: "dd/mm/yyyy", "dd/mm/yyyy HH:MM", "yyyy-mm-dd", "yyyy-mm-dd HH:MM"
   if (!dateStr) return null;
-  var parts = dateStr.split('/');
+  var s = String(dateStr).trim();
+  if (s.indexOf('-') === 4) {
+    // YYYY-MM-DD format (từ GSheet)
+    return parseInt(s.split('-')[1], 10);
+  }
+  var parts = s.split('/');
   if (parts.length >= 2) return parseInt(parts[1], 10);
   return null;
 }
@@ -2094,7 +2105,13 @@ function getDate(dateStr) {
 
 function fmtDate(dateStr) {
   if (!dateStr) return '';
-  return dateStr.replace(/\s.*/, ''); // chỉ lấy ngày dd/mm/yyyy
+  var s = String(dateStr).trim().replace(/\s.*/, ''); // bỏ time
+  // Nếu format YYYY-MM-DD → convert sang DD/MM/YYYY để nhất quán
+  if (s.indexOf('-') === 4 && s.length === 10) {
+    var p = s.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+  return s;
 }
 
 // ── FETCH ALL SHEETS ─────────────────────────────────────
