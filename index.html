@@ -745,7 +745,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
     </div>
     <div class="card">
       <div class="ct">Giao hàng theo Tháng</div>
-      <div class="cw"><canvas id="c-hd6-giao-thang"></canvas></div>
+      <div style="flex:1;min-height:160px;position:relative"><canvas id="c-hd6-giao-thang"></canvas></div>
     </div>
   </div>
 
@@ -754,9 +754,9 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
     <!-- Bảng PL -->
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:11px 16px;border-bottom:1px solid var(--bdr);font-size:.78rem;font-weight:800;color:var(--dark)">📋 Chi tiết Phụ lục</div>
-      <div style="overflow-x:auto">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:340px">
         <table style="width:100%;border-collapse:collapse;font-size:.71rem">
-          <thead>
+          <thead style="position:sticky;top:0;z-index:2">
             <tr style="background:#f7f8fa">
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">Mã PL</th>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">SP</th>
@@ -776,9 +776,9 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
     <!-- Nhật ký giao -->
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:11px 16px;border-bottom:1px solid var(--bdr);font-size:.78rem;font-weight:800;color:var(--dark)">🚚 Nhật ký Giao hàng</div>
-      <div style="overflow-x:auto">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:340px">
         <table style="width:100%;border-collapse:collapse;font-size:.71rem">
-          <thead>
+          <thead style="position:sticky;top:0;z-index:2">
             <tr style="background:#f7f8fa">
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">Ngày</th>
               <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--soft);border-bottom:1.5px solid var(--bdr)">PL</th>
@@ -1849,10 +1849,19 @@ function buildP3(){
 
   // TP line + grouped KH
   buildTpLine('c-p3-tp-line',XUAT,XUAT_KH,'all',null);
-  buildTpGrouped('c-p3-tp-kh',['Công ty TNHH Tường Minh','Công ty CP Đông Nam Á','Công ty TNHH Thắng Thắng Lợi'],{
-    'SVR 10':[1427,1499,1616],'SVR 20':[546,560,617],
-    'SVR 3L':[270,276,394],'SVR CV50':[151,252,223]
-  });
+  // Chart TP xuất theo KH × loại — dùng data thực từ GSheet
+  (function(){
+    var d = getXuatKhByTp();
+    if (d && d.khs.length > 0) {
+      buildTpGrouped('c-p3-tp-kh', d.khs, d.byTp);
+    } else {
+      // Fallback static nếu chưa có data từ GSheet
+      buildTpGrouped('c-p3-tp-kh',
+        ['Công ty TNHH Tường Minh','Công ty CP Đông Nam Á','Công ty TNHH Thắng Thắng Lợi'],
+        {'SVR 10':[1427,1499,1616],'SVR 20':[546,560,617],
+         'SVR 3L':[270,276,394],'SVR CV50':[151,252,223]});
+    }
+  })();
   setupTpToggle({allId:'p3tp-all',tpIds:['p3tp-10','p3tp-20','p3tp-3l','p3tp-cv'],
     onAll:function(){buildTpLine('c-p3-tp-line',XUAT,XUAT_KH,'all',null);},
     onTp:function(tp){buildTpLine('c-p3-tp-line',XUAT,XUAT_KH,'single',tp);}
@@ -3167,7 +3176,7 @@ function renderHD6(hdId){
   window._mc('c-hd6-giao-thang','bar',{labels:tl,datasets:[
     {label:'KL giao (T)',data:gMSliced,
       backgroundColor:window._TC['SVR 10']?window._TC['SVR 10'].s:'#1e6fdc',borderRadius:4}
-  ]},{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:window._ks},beginAtZero:true}}});
+  ]},{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:window._ks},beginAtZero:true}}});
 
   // Bảng PL
   var tfoot=window._el('hd6-pl-foot');
