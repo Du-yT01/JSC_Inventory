@@ -2223,8 +2223,8 @@ function computeData(raw) {
     var tp  = (r['HH - Tên'] || '').trim();
     var kl  = toNum(r['HH - Số lượng'] || 0);
     var kh  = r['Tên công ty bên A'] || '';
-    var hd  = r['Số hợp đồng'] || '';
-    var pl  = r['Số phụ lục'] || '';
+    var hd  = r['Số hợp đồng'] || r['Mã hợp đồng'] || r['Số HĐ'] || r['HD'] || '';
+    var pl  = r['Số phụ lục'] || r['Mã phụ lục'] || r['Số PL'] || r['PL'] || '';
     var hh  = toNum(r['Hao hụt'] || 0);
 
     if (!tp || !kl || kl <= 0) return;
@@ -2286,8 +2286,8 @@ function computeData(raw) {
   var hdKlMap = {}; // hd → {kh, sp, xuatTot}
   khLog.forEach(function(r){
     if(!r.hd) return;
-    if(!hdKlMap[r.hd]) hdKlMap[r.hd] = {hd:r.hd, kh:r.kh, sp:r.tp, xuatTot:0};
-    hdKlMap[r.hd].xuatTot += r.kl||0;
+    if(!hdKlMap[r.hd]) hdKlMap[r.hd] = {hd:r.hd, kh:r.kh, sp:r.sp, xuatTot:0};
+    hdKlMap[r.hd].xuatTot += r.sl||0;
   });
   var hdPct = Object.keys(hdKlMap).slice(0,12).map(function(hd){
     var d = hdKlMap[hd];
@@ -2358,8 +2358,11 @@ function computeData(raw) {
 
   // ── GIAO_THUC ĐỘNG từ KH_LOG (xuất KH đã parse ở trên) ──
   // Group: số HĐ → loại SP → tổng KL đã giao
+  // Nếu khLog rỗng (Sheet xuat không có cột Số HĐ), thử lấy từ KH_LOG global
+  var khLogSrc = khLog.length > 0 ? khLog : (window._KH_LOG_DATA || (typeof KH_LOG !== 'undefined' ? KH_LOG : []));
+  console.log('[GS] giaoThucDyn source: khLog.length=', khLog.length, '| KH_LOG=', typeof KH_LOG !== 'undefined' ? KH_LOG.length : 'N/A');
   var giaoThucDyn = {};
-  khLog.forEach(function(r) {
+  khLogSrc.forEach(function(r) {
     var hdKey = r.hd||''; if (!hdKey||!r.sp||!r.sl) return;
     if (!giaoThucDyn[hdKey]) giaoThucDyn[hdKey] = {};
     giaoThucDyn[hdKey][r.sp] = (giaoThucDyn[hdKey][r.sp]||0) + r.sl;
@@ -2368,12 +2371,12 @@ function computeData(raw) {
 
   // ── LOG_BY_HD ĐỘNG từ KH_LOG ───────────────────────
   var logByHdDyn = {};
-  khLog.forEach(function(r) {
+  khLogSrc.forEach(function(r) {
     var hdKey = r.hd||''; if (!hdKey) return;
     if (!logByHdDyn[hdKey]) logByHdDyn[hdKey] = [];
     logByHdDyn[hdKey].push({n:r.n, pl:r.pl||'PL', k:r.k, sp:r.sp, sl:r.sl});
   });
-  console.log('[GS] logByHdDyn:', Object.keys(logByHdDyn).length, 'HĐ');
+  console.log('[GS] logByHdDyn:', Object.keys(logByHdDyn).length, 'HĐ | keys:', Object.keys(logByHdDyn).slice(0,5).join(', '));
 
   // Xuất TP tổng
   var xuatTpTot = tpList.reduce(function(s,tp){return s+(xuatTotTp[tp]||0);},0);
@@ -2580,6 +2583,8 @@ function fetchAndRefresh() {
     TP_LOG   = D.TP_LOG;
     GC_LOG   = D.GC_LOG;
     KH_LOG   = D.KH_LOG;
+    window._KH_LOG_DATA = KH_LOG; // expose cho computeData fallback
+    console.log('[GS] KH_LOG updated:', KH_LOG.length, 'rows | sample hd:', KH_LOG[0]?KH_LOG[0].hd:'none');
     HD_PCT   = D.HD_PCT.length > 0 ? D.HD_PCT : HD_PCT;
     HM_DATA  = D.hmData.length > 0 ? D.hmData : HM_DATA;
 
@@ -2895,7 +2900,10 @@ document.getElementById('nav-p6').addEventListener('click',function(){
 
 // ── BUILD P5: TỔNG QUAN HĐ ───────────────────────────────
 function buildP5(){
-  // Tính tổng
+  // Debug: kiểm tra key mismatch giữa HD_LIST.hd và GIAO_THUC keys
+  console.log('[P5] buildP5 | HD_LIST.length:', HD_LIST.length, '| HD_LIST[0].hd:', HD_LIST[0]?HD_LIST[0].hd:'none');
+  console.log('[P5] GIAO_THUC keys (5 đầu):', Object.keys(GIAO_THUC).slice(0,5).join(' | '));
+  console.log('[P5] PL_LIST.length:', PL_LIST.length, '| PL_LIST[0]:', PL_LIST[0]?JSON.stringify(PL_LIST[0]):'none');
   var totGT = HD_LIST.reduce(function(s,h){return s+h.gt;},0);
   var totCK = 0; PL_LIST.forEach(function(p){totCK+=p.sl;});
   var totGiao = Object.keys(GIAO_THUC).reduce(function(s,k){return s+getGiaoTheoHD(k);},0);
