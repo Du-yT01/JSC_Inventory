@@ -2322,16 +2322,22 @@ function computeData(raw) {
   var hdRows = raw.hd || [];
   var hdListDyn = [];
   if (hdRows.length > 0) {
-    console.log('[GS] Parsing hd rows:', hdRows.length, '| cols:', Object.keys(hdRows[0]).join(' | '));
+    console.log('[GS] Parsing hd rows:', hdRows.length);
+    console.log('[GS] hd row[0] FULL:', JSON.stringify(hdRows[0]).slice(0,800));
     hdRows.forEach(function(r) {
-      var soHD = r['ⱱố hợp đồng']||r['Mã hợp đồng']||r['Tên hợp đồng']||r['ⱱố HĐ']||r['ⱱỐ HĐ']||'';
-      var kh   = r['Tên công ty bên A']||r['Khách hàng']||r['Bên A']||r['Tên KH']||r['Công ty']||'';
-      var mst  = r['MST']||r['Mã số thuế']||'';
-      var gt   = toNum(r['Giá trị hợp đồng']||r['Giá trị']||r['GT HĐ']||r['Giá trị HĐ']||0);
-      var t1   = r['Ngày ký']||r['Ngày bắt đầu']||r['Từ ngày']||r['Ngày hiệu lực']||r['Ngày lập']||'';
-      var t2   = r['Ngày kết thúc']||r['Đến ngày']||r['Hạn giao']||r['Hạn']||r['Ngày hết hạn']||r['Ngày thanh lý']||'';
-      if (!soHD||!kh||soHD.trim()===''||kh.trim()==='') return;
-      hdListDyn.push({hd:soHD.trim(),kh:kh.trim(),mst:mst,gt:gt,t1:fmtDate(t1),t2:fmtDate(t2)});
+      // Ten cot thuc te tu GSheet (da xac nhan qua console log)
+      var soHD = r['Số hợp đồng']||r['Mã hợp đồng']||r['Tên phiếu']||r['Số HĐ']||'';
+      var kh   = r['Tên công ty bên A']||r['Khách hàng']||r['Bên A']||r['Tên KH']||'';
+      var mst  = r['Mã số thuế']||r['MST']||'';
+      // Gia tri HD: cot thuc te la "Tong gia tri hop dong (USD)" hoac "Tong gia tri thanh toan (USD)"
+      var gt   = toNum(r['Tổng giá trị hợp đồng (USD)']||r['Tổng giá trị thanh toán (USD)']||r['Giá trị sau khấu trừ (USD)']||r['Giá trị hợp đồng']||r['Giá trị']||0);
+      // Ngay: "Ngay bat dau giao hang" / "Ngay ket thuc giao hang"
+      var t1   = r['Ngày bắt đầu giao hàng']||r['Ngày ký']||r['Từ ngày']||r['Tạo lúc']||'';
+      var t2   = r['Ngày kết thúc giao hàng']||r['Ngày kết thúc']||r['Đến ngày']||r['Hạn giao']||r['Hạn']||'';
+      if (!soHD||!kh||soHD.trim()===''||kh.trim()==='') {
+        return; // skip hang trong
+      }
+      hdListDyn.push({hd:soHD.trim(), kh:kh.trim(), mst:mst, gt:gt, t1:fmtDate(t1), t2:fmtDate(t2)});
     });
     console.log('[GS] hdListDyn:', hdListDyn.length, 'HĐ | sample:', hdListDyn[0]?JSON.stringify(hdListDyn[0]):'none');
   }
@@ -2340,18 +2346,28 @@ function computeData(raw) {
   var plRows = raw.pl || [];
   var plListDyn = [];
   if (plRows.length > 0) {
-    console.log('[GS] Parsing pl rows:', plRows.length, '| cols:', Object.keys(plRows[0]).join(' | '));
+    console.log('[GS] Parsing pl rows:', plRows.length);
+    console.log('[GS] pl row[0] FULL:', JSON.stringify(plRows[0]).slice(0,800));
     plRows.forEach(function(r) {
-      var maPL = r['Mã phụ lục']||r['ⱱố phụ lục']||r['Phụ lục']||r['Mã PL']||r['ⱱố PL']||'';
-      var soHD = r['ⱱố hợp đồng']||r['Mã hợp đồng']||r['ⱱố HĐ']||'';
+      // Ten cot thuc te tu GSheet (da xac nhan)
+      var maPL = r['Mã phụ lục']||r['Số phụ lục']||r['Phụ lục']||r['Mã PL']||'';
+      var soHD = r['Số hợp đồng']||r['Mã hợp đồng']||r['Số HĐ']||'';
       var kh   = r['Tên công ty bên A']||r['Khách hàng']||r['Bên A']||'';
-      var sp   = (r['ⱱản phẩm']||r['TP - Tên']||r['HH - Tên']||r['Tên SP']||r['Tên sản phẩm']||'').trim();
-      var sl   = toNum(r['ⱱố lượng']||r['KL cam kết']||r['TP - SL']||r['HH - ⱱố lượng']||r['SL cam kết']||r['ⱱố lượng (T)']||0);
-      var dg   = toNum(r['Đơn giá']||r['Giá']||r['Đơn giá (đ/T)']||r['Giá bán']||0);
-      var tt   = toNum(r['Thành tiền']||r['Tổng tiền']||r['Giá trị PL']||r['Giá trị']||0)||(sl*dg);
-      var hanTT= r['Hạn thanh toán']||r['Hạn']||r['Ngày kết thúc']||r['Hạn TT']||'';
-      if (!soHD||!sp||sl<=0) return;
-      plListDyn.push({hd:soHD.trim(),pl:(maPL||soHD+'-PL').trim(),kh:kh.trim(),sp:sp,sl:sl,dg:dg,tt:tt,hanTT:fmtDate(hanTT)});
+      // Cot thuc te: "HH - Ten", "HH - So luong", "HH - Don gia", "HH - Thanh tien"
+      var sp   = (r['HH - Tên']||r['TP - Tên']||r['Sản phẩm']||r['Tên SP']||'').trim();
+      var sl   = toNum(r['HH - Số lượng']||r['Số lượng']||r['KL cam kết']||r['TP - SL']||r['SL cam kết']||0);
+      var dg   = toNum(r['HH - Đơn giá']||r['Đơn giá']||r['Giá']||0);
+      var tt   = toNum(r['HH - Thành tiền']||r['Tổng giá trị đơn hàng']||r['Thành tiền']||r['Tổng tiền']||0)||(sl*dg);
+      var hanTT= r['Ngày thanh toán dự kiến']||r['Hạn thanh toán']||r['Ngày kết thúc']||r['Hạn']||'';
+      if (!soHD || !sp) {
+        console.log('[GS] pl skip: soHD='+JSON.stringify(soHD)+' sp='+JSON.stringify(sp));
+        return;
+      }
+      if (sl <= 0) {
+        console.log('[GS] pl skip sl<=0: sp='+sp+' raw HH-SL='+JSON.stringify(r['HH - Số lượng']));
+        return;
+      }
+      plListDyn.push({hd:soHD.trim(), pl:(maPL||soHD+'-PL').trim(), kh:kh.trim(), sp:sp, sl:sl, dg:dg, tt:tt, hanTT:fmtDate(hanTT)});
     });
     console.log('[GS] plListDyn:', plListDyn.length, 'PL | sample:', plListDyn[0]?JSON.stringify(plListDyn[0]):'none');
   }
@@ -2605,6 +2621,9 @@ function fetchAndRefresh() {
     if (D.GIAO_THUC_DYN && Object.keys(D.GIAO_THUC_DYN).length > 0) {
       GIAO_THUC = D.GIAO_THUC_DYN;
       console.log('[GS] ✓ GIAO_THUC updated:', Object.keys(GIAO_THUC).length, 'HĐ | keys:', Object.keys(GIAO_THUC).slice(0,4).join(', '));
+      // Kiểm tra key match với HD_LIST
+      var matchCount = HD_LIST.filter(function(h){ return GIAO_THUC[h.hd]; }).length;
+      console.log('[GS] GIAO_THUC ↔ HD_LIST match:', matchCount, '/', HD_LIST.length, '| HD_LIST[0].hd:', HD_LIST[0]?HD_LIST[0].hd:'none');
     }
     if (D.LOG_BY_HD_DYN && Object.keys(D.LOG_BY_HD_DYN).length > 0) {
       LOG_BY_HD = D.LOG_BY_HD_DYN;
