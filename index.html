@@ -2225,6 +2225,8 @@ function computeData(raw) {
     var kh  = r['Tên công ty bên A'] || '';
     var hd  = r['Số hợp đồng'] || r['Mã hợp đồng'] || r['Số HĐ'] || r['HD'] || '';
     var pl  = r['Số phụ lục'] || r['Mã phụ lục'] || r['Số PL'] || r['PL'] || '';
+    // Build lookup: mã ngắn HĐ → tên công ty (để remap sau)
+    if (hd && r['Tên công ty bên A']) { if(!window._keyToKhMap) window._keyToKhMap={}; window._keyToKhMap[hd.trim()] = r['Tên công ty bên A'].trim(); }
     var hh  = toNum(r['Hao hụt'] || 0);
 
     if (!tp || !kl || kl <= 0) return;
@@ -2337,7 +2339,16 @@ function computeData(raw) {
       if (!soHD||!kh||soHD.trim()===''||kh.trim()==='') {
         return; // skip hang trong
       }
-      hdListDyn.push({hd:soHD.trim(), kh:kh.trim(), mst:mst, gt:gt, t1:fmtDate(t1), t2:fmtDate(t2)});
+      // ── REMAP: Chuẩn hoá Số HĐ → mã ngắn khớp Sheet 7 (Xuất hàng) ──────
+      // Sheet 7 dùng mã ngắn cố định: HD-TM-2026 / HD-TTL-2026 / HD-DNA-2026
+      // Mapping dựa vào tên công ty (field ổn định duy nhất giữa 2 sheet)
+      var HD_SHORT_MAP = {
+        'CÔNG TY TNHH MINH VÂN':     'HD-TM-2026',
+        'CÔNG TY TNHH MTV THẮNG HÀ': 'HD-TTL-2026',
+        'CÔNG TY CP HẬU Á':          'HD-DNA-2026'
+      };
+      var hdKey = HD_SHORT_MAP[kh.trim()] || soHD.trim();
+      hdListDyn.push({hd:hdKey, kh:kh.trim(), mst:mst, gt:gt, t1:fmtDate(t1), t2:fmtDate(t2)});
     });
     console.log('[GS] hdListDyn:', hdListDyn.length, 'HĐ | sample:', hdListDyn[0]?JSON.stringify(hdListDyn[0]):'none');
   }
@@ -2367,7 +2378,14 @@ function computeData(raw) {
         console.log('[GS] pl skip sl<=0: sp='+sp+' raw HH-SL='+JSON.stringify(r['HH - Số lượng']));
         return;
       }
-      plListDyn.push({hd:soHD.trim(), pl:(maPL||soHD+'-PL').trim(), kh:kh.trim(), sp:sp, sl:sl, dg:dg, tt:tt, hanTT:fmtDate(hanTT)});
+      // Remap soHD → mã ngắn (cùng logic với hdListDyn)
+      var PL_SHORT_MAP = {
+        'CÔNG TY TNHH MINH VÂN':     'HD-TM-2026',
+        'CÔNG TY TNHH MTV THẮNG HÀ': 'HD-TTL-2026',
+        'CÔNG TY CP HẬU Á':          'HD-DNA-2026'
+      };
+      var plHdKey = PL_SHORT_MAP[kh.trim()] || soHD.trim();
+      plListDyn.push({hd:plHdKey, pl:(maPL||plHdKey+'-PL').trim(), kh:kh.trim(), sp:sp, sl:sl, dg:dg, tt:tt, hanTT:fmtDate(hanTT)});
     });
     console.log('[GS] plListDyn:', plListDyn.length, 'PL | sample:', plListDyn[0]?JSON.stringify(plListDyn[0]):'none');
   }
@@ -2523,6 +2541,7 @@ function fetchAndRefresh() {
   if (overlay) overlay.style.display = 'flex';
 
   // gid lấy trực tiếp từ URL Google Sheets của từng tab
+  window._keyToKhMap = {}; // reset trước mỗi fetch
   var sheetGids = {
     nhap: '1935186217',  // 2.1 QT Nhập kho CTCP
     gc:   '103243898',   // 3. QT Giao nguyên liệu cho nhà máy gia công
@@ -2619,11 +2638,11 @@ function fetchAndRefresh() {
       console.log('[GS] ℹ PL_LIST giữ nguyên static (sheet pl parse 0 rows)');
     }
     if (D.GIAO_THUC_DYN && Object.keys(D.GIAO_THUC_DYN).length > 0) {
+      // HD_LIST.hd đã được remap sang mã ngắn (HD-TM-2026...) khi parse
+      // GIAO_THUC_DYN cũng dùng mã ngắn → gán thẳng, không cần remap
       GIAO_THUC = D.GIAO_THUC_DYN;
-      console.log('[GS] ✓ GIAO_THUC updated:', Object.keys(GIAO_THUC).length, 'HĐ | keys:', Object.keys(GIAO_THUC).slice(0,4).join(', '));
-      // Kiểm tra key match với HD_LIST
       var matchCount = HD_LIST.filter(function(h){ return GIAO_THUC[h.hd]; }).length;
-      console.log('[GS] GIAO_THUC ↔ HD_LIST match:', matchCount, '/', HD_LIST.length, '| HD_LIST[0].hd:', HD_LIST[0]?HD_LIST[0].hd:'none');
+      console.log('[GS] ✓ GIAO_THUC updated:', Object.keys(GIAO_THUC).length, 'HĐ | match:', matchCount, '/', HD_LIST.length);
     }
     if (D.LOG_BY_HD_DYN && Object.keys(D.LOG_BY_HD_DYN).length > 0) {
       LOG_BY_HD = D.LOG_BY_HD_DYN;
