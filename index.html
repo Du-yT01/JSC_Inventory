@@ -741,7 +741,7 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
       <div class="ct" style="margin-bottom:8px">Tiến độ theo Phụ lục
         <span style="font-size:.63rem;color:var(--soft);font-weight:400;display:block;margin-top:1px">Thanh = đã giao · Vạch = cam kết</span>
       </div>
-      <div id="hd6-pl-progress"></div>
+      <div id="hd6-pl-progress" style="overflow-y:auto;max-height:320px;padding-right:4px"></div>
     </div>
     <div class="card">
       <div class="ct">Giao hàng theo Tháng</div>
@@ -3145,15 +3145,27 @@ function renderHD6(hdId){
   }).join('');
 
   // Chart giao theo tháng
+  // r.n có format "2026-04-03" (YYYY-MM-DD) hoặc "03/04/2026" (DD/MM/YYYY)
+  // Cần parse linh hoạt
   var logs=LOG_BY_HD[hdId]||[];
-  var gM=[0,0,0,0,0,0];
+  var gM=[0,0,0,0,0,0,0,0,0,0,0,0];
   logs.forEach(function(r){
-    var m=parseInt((r.n||'').split('/')[1])-1;
-    if(m>=0&&m<6) gM[m]+=(r.sl||0);
+    var n=r.n||''; var m=-1;
+    if(n.indexOf('-')>-1) {
+      // YYYY-MM-DD
+      m=parseInt(n.split('-')[1])-1;
+    } else if(n.indexOf('/')>-1) {
+      // DD/MM/YYYY
+      m=parseInt(n.split('/')[1])-1;
+    }
+    if(m>=0&&m<12) gM[m]=(gM[m]||0)+(r.sl||0);
   });
+  console.log('[P6] gM for', hdId, ':', JSON.stringify(gM), '| logs:', logs.length);
   if(window._CH['c-hd6-giao-thang']){window._CH['c-hd6-giao-thang'].destroy();delete window._CH['c-hd6-giao-thang'];}
-  window._mc('c-hd6-giao-thang','bar',{labels:window._TL(),datasets:[
-    {label:'KL giao (T)',data:gM.slice(0,window._TL().length),
+  var tl = window._TL();
+  var gMSliced = gM.slice(0, tl.length);
+  window._mc('c-hd6-giao-thang','bar',{labels:tl,datasets:[
+    {label:'KL giao (T)',data:gMSliced,
       backgroundColor:window._TC['SVR 10']?window._TC['SVR 10'].s:'#1e6fdc',borderRadius:4}
   ]},{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:window._ks},beginAtZero:true}}});
 
