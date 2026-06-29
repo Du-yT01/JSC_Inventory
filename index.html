@@ -182,7 +182,13 @@ tfoot td{padding:6px 8px;font-weight:700;background:var(--bg);border-top:2px sol
 .c5-7{grid-template-columns:5fr 7fr;}
 </style>
 </head>
-<body>
+Promise.all([
+    fetchSheet(sheetGids.nhap),
+    fetchSheet(sheetGids.gc),
+    fetchSheet(sheetGids.tp),
+    fetchSheet(sheetGids.xuat)
+  ]).then(function(results) {
+    var raw = {nhap: results[0], gc: results[1], tp: results[2], xuat: results[3]};<body>
 
 
 <div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,22,40,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
@@ -2321,8 +2327,64 @@ function computeData(raw) {
   // Xuất TP tổng
   var xuatTpTot = tpList.reduce(function(s,tp){return s+(xuatTotTp[tp]||0);},0);
 
-  // Trim to last month with any data (use tpList not global TPS)
-  var lastM = 0;
+// ── PARSE HỢP ĐỒNG (Sheet 5) ─────────────────────────
+  var hdRows = raw.hd || [];
+  var hdListDyn = [];
+  if (hdRows.length > 0) {
+    console.log('[GS] Parsing hd rows:', hdRows.length, '| cols:', Object.keys(hdRows[0]).join(' | '));
+    hdRows.forEach(function(r) {
+      var soHD = r['Số hợp đồng']||r['Mã hợp đồng']||r['Tên hợp đồng']||r['Số HĐ']||r['SỐ HĐ']||'';
+      var kh   = r['Tên công ty bên A']||r['Khách hàng']||r['Bên A']||r['Tên KH']||r['Công ty']||'';
+      var mst  = r['MST']||r['Mã số thuế']||'';
+      var gt   = toNum(r['Giá trị hợp đồng']||r['Giá trị']||r['GT HĐ']||r['Giá trị HĐ']||0);
+      var t1   = r['Ngày ký']||r['Ngày bắt đầu']||r['Từ ngày']||r['Ngày hiệu lực']||r['Ngày lập']||'';
+      var t2   = r['Ngày kết thúc']||r['Đến ngày']||r['Hạn giao']||r['Hạn']||r['Ngày hết hạn']||r['Ngày thanh lý']||'';
+      if (!soHD||!kh||soHD.trim()===''||kh.trim()==='') return;
+      hdListDyn.push({hd:soHD.trim(),kh:kh.trim(),mst:mst,gt:gt,t1:fmtDate(t1),t2:fmtDate(t2)});
+    });
+    console.log('[GS] hdListDyn:', hdListDyn.length, 'HĐ | sample:', hdListDyn[0]?JSON.stringify(hdListDyn[0]):'none');
+  }
+
+  // ── PARSE PHỤ LỤC (Sheet 6) ──────────────────────────
+  var plRows = raw.pl || [];
+  var plListDyn = [];
+  if (plRows.length > 0) {
+    console.log('[GS] Parsing pl rows:', plRows.length, '| cols:', Object.keys(plRows[0]).join(' | '));
+    plRows.forEach(function(r) {
+      var maPL = r['Mã phụ lục']||r['Số phụ lục']||r['Phụ lục']||r['Mã PL']||r['Số PL']||'';
+      var soHD = r['Số hợp đồng']||r['Mã hợp đồng']||r['Số HĐ']||'';
+      var kh   = r['Tên công ty bên A']||r['Khách hàng']||r['Bên A']||'';
+      var sp   = (r['Sản phẩm']||r['TP - Tên']||r['HH - Tên']||r['Tên SP']||r['Tên sản phẩm']||'').trim();
+      var sl   = toNum(r['Số lượng']||r['KL cam kết']||r['TP - SL']||r['HH - Số lượng']||r['SL cam kết']||r['Số lượng (T)']||0);
+      var dg   = toNum(r['Đơn giá']||r['Giá']||r['Đơn giá (đ/T)']||r['Giá bán']||0);
+      var tt   = toNum(r['Thành tiền']||r['Tổng tiền']||r['Giá trị PL']||r['Giá trị']||0)||(sl*dg);
+      var hanTT= r['Hạn thanh toán']||r['Hạn']||r['Ngày kết thúc']||r['Hạn TT']||'';
+      if (!soHD||!sp||sl<=0) return;
+      plListDyn.push({hd:soHD.trim(),pl:(maPL||soHD+'-PL').trim(),kh:kh.trim(),sp:sp,sl:sl,dg:dg,tt:tt,hanTT:fmtDate(hanTT)});
+    });
+    console.log('[GS] plListDyn:', plListDyn.length, 'PL | sample:', plListDyn[0]?JSON.stringify(plListDyn[0]):'none');
+  }
+
+  // ── GIAO_THUC ĐỘNG từ KH_LOG (Sheet 7, đã parse ở trên) ──
+  // Group: số HĐ → sản phẩm → tổng KL đã giao
+  var giaoThucDyn = {};
+  khLog.forEach(function(r) {
+    var hdKey = r.hd||''; if(!hdKey||!r.sp||!r.sl) return;
+    if(!giaoThucDyn[hdKey]) giaoThucDyn[hdKey] = {};
+    giaoThucDyn[hdKey][r.sp] = (giaoThucDyn[hdKey][r.sp]||0) + r.sl;
+  });
+  console.log('[GS] giaoThucDyn:', Object.keys(giaoThucDyn).length, 'HĐ | keys:', Object.keys(giaoThucDyn).slice(0,5).join(', '));
+
+  // ── LOG_BY_HD ĐỘNG từ KH_LOG ──────────────────────────
+  var logByHdDyn = {};
+  khLog.forEach(function(r) {
+    var hdKey = r.hd||''; if(!hdKey) return;
+    if(!logByHdDyn[hdKey]) logByHdDyn[hdKey] = [];
+    logByHdDyn[hdKey].push({n:r.n, pl:r.pl||'PL', k:r.k, sp:r.sp, sl:r.sl});
+  });
+  console.log('[GS] logByHdDyn:', Object.keys(logByHdDyn).length, 'HĐ');
+
+  // Trim to last month with any data (use tpList not global TPS)  var lastM = 0;
   for (var mi = 11; mi >= 0; mi--) {
     var hasAny = nhapByMonth[mi] > 0 || gcByMonth[mi] > 0;
     if (!hasAny) tpList.forEach(function(tp){ hasAny = hasAny || (nhanByMonthTp[tp]||[])[mi]>0 || (xuatByMonthTp[tp]||[])[mi]>0; });
@@ -2425,7 +2487,12 @@ function computeData(raw) {
       if(Object.keys(result).length===0) return {'SVR 10':2200,'SVR 20':1000,'SVR 3L':300,'SVR CV50':250};
       return result;
     })(),
-    HM_DATA: hmData
+       HM_DATA: hmData,
+    // HĐ dynamic (từ Sheet 5, 6 và KH_LOG)
+    HD_LIST_DYN:   hdListDyn,
+    PL_LIST_DYN:   plListDyn,
+    GIAO_THUC_DYN: giaoThucDyn,
+    LOG_BY_HD_DYN: logByHdDyn
   };
 }
 
@@ -2442,21 +2509,29 @@ function fetchAndRefresh() {
   if (overlay) overlay.style.display = 'flex';
 
   // gid lấy trực tiếp từ URL Google Sheets của từng tab
-  var sheetGids = {
+    var sheetGids = {
     nhap: '1935186217',  // 2.1 QT Nhập kho CTCP
     gc:   '103243898',   // 3. QT Giao nguyên liệu cho nhà máy gia công
     tp:   '0',           // 4. QT Nhận thành phẩm từ nhà máy gia công
-    xuat: '416258458'    // 7. QT Xử lý đơn hàng và giao hàng
+    xuat: '416258458',   // 7. QT Xử lý đơn hàng và giao hàng
+    hd:   '1648919002',  // 5. Danh sách Hợp đồng
+    pl:   '528590544'    // 6. Phụ lục Hợp đồng
   };
 
-  Promise.all([
+   Promise.all([
     fetchSheet(sheetGids.nhap),
     fetchSheet(sheetGids.gc),
     fetchSheet(sheetGids.tp),
-    fetchSheet(sheetGids.xuat)
+    fetchSheet(sheetGids.xuat),
+    fetchSheet(sheetGids.hd),
+    fetchSheet(sheetGids.pl)
   ]).then(function(results) {
-    var raw = {nhap: results[0], gc: results[1], tp: results[2], xuat: results[3]};
-    console.log('[GS] ✓ Fetched rows — nhap:', raw.nhap.length, '| gc:', raw.gc.length, '| tp:', raw.tp.length, '| xuat:', raw.xuat.length);
+    var raw = {nhap: results[0], gc: results[1], tp: results[2], xuat: results[3], hd: results[4], pl: results[5]};
+    console.log('[GS] ✓ Fetched rows — nhap:', raw.nhap.length, '| gc:', raw.gc.length, '| tp:', raw.tp.length, '| xuat:', raw.xuat.length, '| hd:', raw.hd.length, '| pl:', raw.pl.length);
+    console.log('[GS] hd ALL cols:', raw.hd[0] ? Object.keys(raw.hd[0]).join(' | ') : 'EMPTY');
+    console.log('[GS] pl ALL cols:', raw.pl[0] ? Object.keys(raw.pl[0]).join(' | ') : 'EMPTY');
+    console.log('[GS] hd row[0]:', raw.hd[0] ? JSON.stringify(raw.hd[0]).slice(0,300) : 'EMPTY');
+    console.log('[GS] pl row[0]:', raw.pl[0] ? JSON.stringify(raw.pl[0]).slice(0,300) : 'EMPTY');
     console.log('[GS] nhap cols:', raw.nhap[0] ? Object.keys(raw.nhap[0]).slice(0,8).join(' | ') : 'EMPTY');
     console.log('[GS] gc cols:',   raw.gc[0]   ? Object.keys(raw.gc[0]).slice(0,8).join(' | ')   : 'EMPTY');
     console.log('[GS] tp cols:',   raw.tp[0]   ? Object.keys(raw.tp[0]).slice(0,8).join(' | ')   : 'EMPTY');
@@ -2512,6 +2587,31 @@ function fetchAndRefresh() {
     KH_LOG   = D.KH_LOG;
     HD_PCT   = D.HD_PCT.length > 0 ? D.HD_PCT : HD_PCT;
     HM_DATA  = D.hmData.length > 0 ? D.hmData : HM_DATA;
+
+    // ── Update HĐ vars từ Google Sheets ─────────────────────
+    if (D.HD_LIST_DYN && D.HD_LIST_DYN.length > 0) {
+      HD_LIST = D.HD_LIST_DYN;
+      hdSelectBuilt = false; // Force rebuild dropdown P6
+      console.log('[GS] ✓ HD_LIST updated:', HD_LIST.length, 'HĐ');
+    } else {
+      console.log('[GS] ℹ HD_LIST giữ nguyên static (sheet hd parse ra 0 rows)');
+    }
+    if (D.PL_LIST_DYN && D.PL_LIST_DYN.length > 0) {
+      PL_LIST = D.PL_LIST_DYN;
+      console.log('[GS] ✓ PL_LIST updated:', PL_LIST.length, 'PL');
+    } else {
+      console.log('[GS] ℹ PL_LIST giữ nguyên static (sheet pl parse ra 0 rows)');
+    }
+    // GIAO_THUC: luôn tính lại từ KH_LOG (ngay cả khi hd/pl không parse được)
+    if (D.GIAO_THUC_DYN && Object.keys(D.GIAO_THUC_DYN).length > 0) {
+      GIAO_THUC = D.GIAO_THUC_DYN;
+      console.log('[GS] ✓ GIAO_THUC updated:', Object.keys(GIAO_THUC).length, 'HĐ | keys:', Object.keys(GIAO_THUC).slice(0,4).join(', '));
+    }
+    if (D.LOG_BY_HD_DYN && Object.keys(D.LOG_BY_HD_DYN).length > 0) {
+      LOG_BY_HD = D.LOG_BY_HD_DYN;
+      console.log('[GS] ✓ LOG_BY_HD updated:', Object.keys(LOG_BY_HD).length, 'HĐ');
+    }
+
     NHAP_KH      = D.NHAP_KH;
     GC_KH        = D.GC_KH;
     XUAT_KH      = D.XUAT_KH || XUAT_KH;
@@ -2565,9 +2665,11 @@ function fetchAndRefresh() {
       delete CH[id];
     });
 
-    // Rebuild current page
-    var activePage = ['p1','p2','p3','p4'].find(function(p){ return document.getElementById(p).classList.contains('on'); });
-    if (activePage) buildPage(activePage);
+     // Rebuild current page (bao gồm cả p5/p6)
+    var activePage = ALL_PAGES.find(function(p){ return document.getElementById(p).classList.contains('on'); });
+    if      (activePage === 'p5') buildP5();
+    else if (activePage === 'p6') buildP6();
+    else if (activePage) buildPage(activePage);
 
     btn.textContent = '✓ Đã cập nhật';
     btn.style.background = '#00a854';
